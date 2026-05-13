@@ -141,6 +141,7 @@ def _article_filters(
 def _article_order(sort: str | None) -> str:
     return {
         "latest": "collected_at DESC, importance_score DESC",
+        "oldest": "collected_at ASC, importance_score DESC",
         "importance": "importance_score DESC, collected_at DESC",
         "source": "source_name ASC, collected_at DESC",
         "ready": "CASE WHEN newsroom_status = 'ready' THEN 0 ELSE 1 END, importance_score DESC, collected_at DESC",

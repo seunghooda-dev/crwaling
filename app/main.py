@@ -182,7 +182,7 @@ def articles(
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
     collected_from: str | None = None,
     collected_to: str | None = None,
-    sort: str | None = Query(default="importance", pattern="^(latest|importance|source|ready)$"),
+    sort: str | None = Query(default="importance", pattern="^(latest|oldest|importance|source|ready)$"),
     conn=Depends(db_session),
     ) -> list[dict]:
     return list_articles(

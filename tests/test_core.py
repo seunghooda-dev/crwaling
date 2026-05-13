@@ -66,6 +66,8 @@ def test_article_sort_and_date_range_filters():
 
     rows = list_articles(conn, collected_from="2026-05-13 00:00:00", collected_to="2026-05-13 23:59:59", sort="source")
     assert [row["source_name"] for row in rows] == ["A", "B"]
+    rows = list_articles(conn, collected_from="2026-05-13 00:00:00", collected_to="2026-05-13 23:59:59", sort="oldest")
+    assert [row["title"] for row in rows] == ["낮은 점수", "방송 후보"]
     assert count_articles(conn, collected_from="2026-05-14 00:00:00") == 0
 
 

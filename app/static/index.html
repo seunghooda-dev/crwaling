@@ -672,6 +672,15 @@
         font-size: 13px;
       }
 
+      .checklist input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        min-width: 16px;
+        flex: 0 0 16px;
+        margin: 0;
+        accent-color: var(--accent);
+      }
+
       .verification-brief {
         display: grid;
         gap: 6px;
@@ -789,6 +798,7 @@
         <select id="sort">
           <option value="importance">중요도순</option>
           <option value="latest">최신순</option>
+          <option value="oldest">오래된순</option>
           <option value="source">출처순</option>
           <option value="ready">방송후보순</option>
         </select>
