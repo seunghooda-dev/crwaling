@@ -106,6 +106,7 @@ def _article_filters(
 ) -> tuple[list[str], list[object]]:
     where = []
     params: list[object] = []
+    local_article_time = _article_local_time_sql()
     if source_name:
         where.append("source_name = ?")
         params.append(source_name)
@@ -127,25 +128,35 @@ def _article_filters(
         params.append(assignee)
     if collected_within_days:
         cutoff = datetime.now() - timedelta(days=collected_within_days)
-        where.append("collected_at >= ?")
+        where.append(f"{local_article_time} >= ?")
         params.append(cutoff.strftime("%Y-%m-%d %H:%M:%S"))
     if collected_from:
-        where.append("collected_at >= ?")
+        where.append(f"{local_article_time} >= ?")
         params.append(collected_from)
     if collected_to:
-        where.append("collected_at <= ?")
+        where.append(f"{local_article_time} <= ?")
         params.append(collected_to)
     return where, params
 
 
+def _article_time_sql() -> str:
+    return "COALESCE(datetime(published_at), datetime(collected_at), collected_at)"
+
+
+def _article_local_time_sql() -> str:
+    return f"datetime({_article_time_sql()}, '+9 hours')"
+
+
 def _article_order(sort: str | None) -> str:
+    article_time = _article_time_sql()
+    unknown_published = "CASE WHEN published_at IS NULL OR published_at = '' THEN 1 ELSE 0 END"
     return {
-        "latest": "collected_at DESC, importance_score DESC",
-        "oldest": "collected_at ASC, importance_score DESC",
-        "importance": "importance_score DESC, collected_at DESC",
-        "source": "source_name ASC, collected_at DESC",
-        "ready": "CASE WHEN newsroom_status = 'ready' THEN 0 ELSE 1 END, importance_score DESC, collected_at DESC",
-    }.get(sort or "importance", "importance_score DESC, collected_at DESC")
+        "latest": f"{unknown_published} ASC, {article_time} DESC, importance_score DESC, id DESC",
+        "oldest": f"{unknown_published} ASC, {article_time} ASC, importance_score DESC, id ASC",
+        "importance": f"importance_score DESC, {article_time} DESC, id DESC",
+        "source": f"source_name ASC, {unknown_published} ASC, {article_time} DESC, id DESC",
+        "ready": f"CASE WHEN newsroom_status = 'ready' THEN 0 ELSE 1 END, importance_score DESC, {article_time} DESC, id DESC",
+    }.get(sort or "importance", f"importance_score DESC, {article_time} DESC, id DESC")
 
 
 def list_articles(

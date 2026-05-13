@@ -31,7 +31,7 @@ def test_ai_assist_contains_anchor_line():
     assert "앵커 멘트 초안" in assist["ai_summary"]
 
 
-def test_article_period_filter_uses_collected_at():
+def test_article_period_filter_prefers_published_at():
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
@@ -39,12 +39,12 @@ def test_article_period_filter_uses_collected_at():
     old = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d %H:%M:%S")
     conn.execute(
         """
-        INSERT INTO articles (source_name, source_type, title, url, fingerprint, collected_at)
+        INSERT INTO articles (source_name, source_type, title, url, fingerprint, published_at, collected_at)
         VALUES
-          ('source', 'rss', '최근 교통사고', 'https://recent', 'recent', ?),
-          ('source', 'rss', '오래된 교통사고', 'https://old', 'old', ?)
+          ('source', 'rss', '최근 교통사고', 'https://recent', 'recent', ?, ?),
+          ('source', 'rss', '오래된 교통사고', 'https://old', 'old', ?, ?)
         """,
-        (recent, old),
+        (recent, recent, old, recent),
     )
 
     assert count_articles(conn, q="교통사고", collected_within_days=1) == 1
@@ -69,6 +69,40 @@ def test_article_sort_and_date_range_filters():
     rows = list_articles(conn, collected_from="2026-05-13 00:00:00", collected_to="2026-05-13 23:59:59", sort="oldest")
     assert [row["title"] for row in rows] == ["낮은 점수", "방송 후보"]
     assert count_articles(conn, collected_from="2026-05-14 00:00:00") == 0
+
+
+def test_latest_sort_prefers_published_at_over_collection_batch():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.execute(
+        """
+        INSERT INTO articles (source_name, source_type, title, url, fingerprint, published_at, collected_at)
+        VALUES
+          ('A', 'rss', '늦게 수집된 예전 기사', 'https://old', 'old', '2026-05-13T18:00:00+09:00', '2026-05-13 10:40:00'),
+          ('B', 'rss', '먼저 수집된 최신 기사', 'https://new', 'new', '2026-05-13T19:00:00+09:00', '2026-05-13 10:30:00')
+        """
+    )
+
+    rows = list_articles(conn, sort="latest")
+    assert [row["title"] for row in rows] == ["먼저 수집된 최신 기사", "늦게 수집된 예전 기사"]
+
+
+def test_latest_sort_puts_unknown_published_time_after_known_time():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.execute(
+        """
+        INSERT INTO articles (source_name, source_type, title, url, fingerprint, published_at, collected_at)
+        VALUES
+          ('A', 'html', '수집 시간만 있는 기사', 'https://unknown', 'unknown', NULL, '2026-05-13 10:40:00'),
+          ('B', 'rss', '발행 시간이 있는 기사', 'https://known', 'known', '2026-05-13T19:00:00+09:00', '2026-05-13 10:30:00')
+        """
+    )
+
+    rows = list_articles(conn, sort="latest")
+    assert [row["title"] for row in rows] == ["발행 시간이 있는 기사", "수집 시간만 있는 기사"]
 
 
 def test_source_quality_reports_zero_new_streak():

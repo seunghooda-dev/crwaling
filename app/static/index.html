@@ -1006,6 +1006,27 @@
         return `${date} ${endOfDay ? "23:59:59" : "00:00:00"}`;
       }
 
+      function formatArticleTime(value) {
+        if (!value) return "";
+        const text = String(value);
+        const hasTimezone = /[zZ]|[+-]\d{2}:\d{2}$/.test(text);
+        const normalized = text.includes("T") || hasTimezone ? text : `${text.replace(" ", "T")}Z`;
+        const date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) return text.replace("T", " ").replace(/[+-]\d{2}:\d{2}$/, "");
+        const parts = new Intl.DateTimeFormat("sv-SE", {
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        }).formatToParts(date);
+        const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+        return `${byType.year}-${byType.month}-${byType.day} ${byType.hour}:${byType.minute}:${byType.second}`;
+      }
+
       function addDateFilters(params) {
         const period = document.querySelector("#period").value;
         document.querySelector("#dateFrom").hidden = period !== "custom";
@@ -1066,6 +1087,7 @@
           : "";
         const sourceDistance = sourceDistanceText(item);
         const display = articleDisplayParts(item);
+        const timeLabel = item.published_at ? "발행" : "수집";
         return `
           <article data-id="${item.id}" data-priority="${priority}" class="${read ? "read" : ""} ${String(item.id) === String(selectedArticleId) ? "selected" : ""}">
             <h3><span class="article-label">[제목]</span> <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${highlightSearch(display.title)}</a></h3>
@@ -1074,7 +1096,7 @@
               ${read ? "" : '<span class="status-pill new">NEW</span>'}
               <span>${escapeHtml(item.source_name)}</span>
               <span class="status-pill category-pill ${escapeHtml(item.source_category || "")}">${escapeHtml(categoryLabel(item.source_category))}</span>
-              <span>${escapeHtml(item.published_at || item.collected_at || "")}</span>
+              <span>${timeLabel} ${escapeHtml(formatArticleTime(item.published_at || item.collected_at))}</span>
               <span class="score">score ${score.toFixed(1)}</span>
               <span class="status-pill">품질 ${Number(item.quality_score || 0).toFixed(0)}</span>
               <span class="status-pill ${item.verification_status === "needs_review" ? "review" : ""}">${escapeHtml(item.verification_status)}</span>
@@ -1190,7 +1212,7 @@
         const source = sourceEl.value;
         const status = document.querySelector("#status").value;
         const sort = document.querySelector("#sort").value;
-        const params = new URLSearchParams({ limit: "50" });
+        const params = new URLSearchParams({ limit: "200" });
         if (mode === "admin") {
           await loadAdmin();
           return;
@@ -1617,7 +1639,7 @@
                           <td>${escapeHtml(item.source_name)}</td>
                           <td>${escapeHtml(parseJsonList(item.region_tags).join(", ") || "-")}</td>
                           <td>${escapeHtml(item.title)}</td>
-                          <td>${escapeHtml(item.published_at || item.collected_at || "-")}</td>
+                          <td>${escapeHtml(formatArticleTime(item.published_at || item.collected_at) || "-")}</td>
                           <td>${Number(item.quality_score || 0).toFixed(0)}</td>
                         </tr>
                       `,
