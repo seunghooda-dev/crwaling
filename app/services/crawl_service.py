@@ -26,11 +26,20 @@ class CrawlService:
             SourceType.html: HtmlCrawler(),
         }
 
-    def crawl_enabled_sources(self, conn: sqlite3.Connection) -> dict[str, int]:
+    def crawl_enabled_sources(
+        self,
+        conn: sqlite3.Connection,
+        source_name: str | None = None,
+        source_category: str | None = None,
+    ) -> dict[str, int]:
         logger = logging.getLogger("crawler")
         results: dict[str, int] = {}
         for row in list_sources(conn):
             if not row["enabled"]:
+                continue
+            if source_name and row["name"] != source_name:
+                continue
+            if source_category and row["source_category"] != source_category:
                 continue
             source = Source(
                 name=row["name"],

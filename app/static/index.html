@@ -890,6 +890,7 @@
       const alertEventsEl = document.querySelector("#alertEvents");
       const detailPanelEl = document.querySelector("#detailPanel");
       const sourceEl = document.querySelector("#source");
+      const searchButtonEl = document.querySelector("#search");
       const urgentRailEl = document.querySelector("#urgentRail");
       const sourceWarningsEl = document.querySelector("#sourceWarnings");
       const opsStatusEl = document.querySelector("#opsStatus");
@@ -904,6 +905,7 @@
       let lastArticleCount = undefined;
       let lastUrgentIds = new Set();
       let selectedArticleId = undefined;
+      let liveRefreshRunning = false;
 
       document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
       document.querySelector("#density").value = document.body.dataset.density;
@@ -927,6 +929,34 @@
           throw new Error(text || `HTTP ${response.status}`);
         }
         return response.json();
+      }
+
+      async function refreshSourcesBeforeSearch() {
+        if (liveRefreshRunning) return null;
+        liveRefreshRunning = true;
+        searchButtonEl.disabled = true;
+        const originalLabel = searchButtonEl.textContent;
+        searchButtonEl.textContent = "수집중";
+        const startedAt = performance.now();
+        const payload = {};
+        if (sourceEl.value) payload.source_name = sourceEl.value;
+        if (activeCategory) payload.source_category = activeCategory;
+        liveStatusEl.textContent = "각 출처 접속 중 · 새 기사 확인 중";
+        try {
+          const result = await fetchJson("/crawl/refresh", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
+          const failedText = result.failed_source_count ? ` · 실패 ${result.failed_source_count}곳` : "";
+          showToast(`실시간 수집 완료: ${result.source_count}곳 확인, 새 기사 ${result.new_article_count}건 (${seconds}초)${failedText}`);
+          return result;
+        } finally {
+          liveRefreshRunning = false;
+          searchButtonEl.disabled = false;
+          searchButtonEl.textContent = originalLabel;
+        }
       }
 
       function escapeHtml(value) {
@@ -1206,7 +1236,7 @@
         return "출처 간 거리: 단일 출처 이슈";
       }
 
-      async function loadArticles() {
+      async function loadArticles(options = {}) {
         const q = document.querySelector("#q").value.trim();
         const mode = document.querySelector("#mode").value;
         const source = sourceEl.value;
@@ -1220,6 +1250,9 @@
         if (mode === "board") {
           await loadBoard();
           return;
+        }
+        if (options.refreshFirst) {
+          await refreshSourcesBeforeSearch();
         }
         if (q) params.set("q", q);
         if (source) params.set("source_name", source);
@@ -1711,7 +1744,7 @@
             button.classList.toggle("active", button.dataset.sourceName === "");
           });
         }
-        loadArticles().catch((error) => showToast(error.message));
+        loadArticles({ refreshFirst: true }).catch((error) => showToast(error.message));
       }
 
       document.querySelector("#search").addEventListener("click", () => {
@@ -1745,7 +1778,7 @@
         if (!query) return;
         document.querySelector("#q").value = query;
         document.querySelector("#mode").value = "latest";
-        loadArticles().catch((error) => showToast(error.message));
+        loadArticles({ refreshFirst: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#quickbar").addEventListener("click", (event) => {
         if (!event.target.dataset) return;

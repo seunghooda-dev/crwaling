@@ -33,6 +33,7 @@ from app.repository import (
 from app.services.ai_assist import build_ai_assist
 from app.services.backup_service import backup_database, list_backups, restore_database
 from app.services.cluster_service import rebuild_clusters
+from app.services.crawl_service import CrawlService
 from app.services.detail_service import enrich_article_details
 from app.services.export_service import articles_to_csv, articles_to_cuesheet
 from app.services.retention_service import prune_old_alerts, prune_old_data
@@ -86,6 +87,11 @@ class ChecklistUpdate(BaseModel):
 
 class KeywordGroupsUpdate(BaseModel):
     groups: dict[str, list[str]]
+
+
+class CrawlRefreshRequest(BaseModel):
+    source_name: str | None = None
+    source_category: str | None = None
 
 
 @app.on_event("startup")
@@ -168,6 +174,24 @@ def stats(conn=Depends(db_session)) -> dict:
 @app.get("/scheduler/status")
 def crawl_scheduler_status(conn=Depends(db_session)) -> dict:
     return scheduler_status(conn)
+
+
+@app.post("/crawl/refresh")
+def crawl_refresh(payload: CrawlRefreshRequest, conn=Depends(db_session)) -> dict:
+    started = time.perf_counter()
+    results = CrawlService().crawl_enabled_sources(
+        conn,
+        source_name=payload.source_name,
+        source_category=payload.source_category,
+    )
+    elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
+    return {
+        "results": results,
+        "source_count": len(results),
+        "new_article_count": sum(count for count in results.values() if count > 0),
+        "failed_source_count": sum(1 for count in results.values() if count < 0),
+        "elapsed_ms": elapsed_ms,
+    }
 
 
 @app.get("/articles")
