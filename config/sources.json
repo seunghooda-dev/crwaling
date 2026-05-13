@@ -190,6 +190,16 @@
     "max_retries": 2
   },
   {
+    "name": "MoneyToday RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://rss.mt.co.kr/mt_news.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
     "name": "Segye Ilbo RSS",
     "source_type": "rss",
     "source_category": "news",

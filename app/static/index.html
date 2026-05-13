@@ -1124,6 +1124,36 @@
         }[value] || value || "기타";
       }
 
+      function sourceMatchesLabel(source, label) {
+        const aliases = {
+          KBS: ["kbs"],
+          SBS: ["sbs"],
+          MBC: ["mbc"],
+          YTN: ["ytn"],
+          JTBC: ["jtbc"],
+          TV조선: ["tv chosun"],
+          채널A: ["channel a"],
+          MBN: ["mbn"],
+          연합뉴스TV: ["yonhap news tv"],
+          조선: ["chosun"],
+          동아: ["donga"],
+          경향: ["kyunghyang"],
+          한겨레: ["hankyoreh"],
+          한경: ["hankyung"],
+          매경: ["maeil business"],
+          머니투데이: ["moneytoday"],
+          세계: ["segye"],
+          오마이: ["ohmynews"],
+          경찰: ["police"],
+          소방: ["fire"],
+          기상: ["weather"],
+          정부: ["government"],
+        };
+        const name = String(source.name || "").toLowerCase();
+        const category = String(source.source_category || "").toLowerCase();
+        return (aliases[label] || [label]).some((alias) => name.includes(alias.toLowerCase()) || category === alias.toLowerCase());
+      }
+
       function articleDisplayParts(item) {
         const title = String(item.title || "");
         if (item.summary) {
@@ -1522,16 +1552,35 @@
             .filter((source) => source.enabled)
             .map((source) => `<option value="${escapeHtml(source.name)}">${escapeHtml(source.name)}</option>`)
             .join("");
-        const pinned = ["KBS", "SBS", "MBC", "YTN", "JTBC", "경찰", "소방", "기상", "정부"];
+        const pinned = [
+          "KBS",
+          "SBS",
+          "MBC",
+          "YTN",
+          "JTBC",
+          "TV조선",
+          "채널A",
+          "MBN",
+          "연합뉴스TV",
+          "조선",
+          "동아",
+          "경향",
+          "한겨레",
+          "한경",
+          "매경",
+          "머니투데이",
+          "세계",
+          "오마이",
+          "경찰",
+          "소방",
+          "기상",
+          "정부",
+        ];
         document.querySelector("#sourcebar").innerHTML =
           '<button data-source-name="" class="active">전체 출처</button>' +
           pinned
             .map((label) => {
-              const source = sources.find(
-                (item) =>
-                  item.enabled &&
-                  (item.name.toLowerCase().includes(label.toLowerCase()) || categoryLabel(item.source_category) === label),
-              );
+              const source = sources.find((item) => item.enabled && sourceMatchesLabel(item, label));
               return source ? `<button data-source-name="${escapeHtml(source.name)}">${escapeHtml(label)}</button>` : "";
             })
             .join("");
