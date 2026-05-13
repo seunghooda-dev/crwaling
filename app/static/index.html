@@ -79,10 +79,22 @@
       }
 
       .toolbar {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: minmax(170px, 220px) minmax(140px, 170px) minmax(260px, 1fr) minmax(110px, 130px) auto;
         gap: 8px;
-        justify-content: flex-end;
+        align-items: center;
+        justify-content: stretch;
+      }
+
+      .toolbar input,
+      .toolbar select,
+      .toolbar button {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .toolbar .search-input {
+        min-width: 260px;
       }
 
       .quickbar {
@@ -227,6 +239,17 @@
         display: grid;
         gap: 8px;
         padding: 12px;
+      }
+
+      .side-body > input,
+      .side-body > select,
+      .side-body > button {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .run-filter {
+        gap: 8px;
       }
 
       .stat {
@@ -638,7 +661,7 @@
         }
 
         .toolbar {
-          justify-content: stretch;
+          grid-template-columns: 1fr;
         }
 
         input,
@@ -653,7 +676,6 @@
     <header>
       <h1>Newsroom Monitor</h1>
       <div class="toolbar">
-        <input id="q" placeholder="검색어" />
         <select id="source"></select>
         <select id="status">
           <option value="">전체 상태</option>
@@ -663,7 +685,7 @@
           <option value="done">확인완료</option>
           <option value="hold">사용주의</option>
         </select>
-        <input id="assigneeFilter" placeholder="담당자" />
+        <input id="q" class="search-input" placeholder="검색어" />
         <select id="mode">
           <option value="latest">최신</option>
           <option value="priority">중요</option>
@@ -739,7 +761,7 @@
         </section>
         <section class="panel">
           <h2>최근 실행</h2>
-          <div class="side-body">
+          <div class="side-body run-filter">
             <input id="runSearch" placeholder="수집 로그 검색" />
             <select id="runStatus">
               <option value="">전체</option>
@@ -992,7 +1014,6 @@
         const mode = document.querySelector("#mode").value;
         const source = sourceEl.value;
         const status = document.querySelector("#status").value;
-        const assignee = document.querySelector("#assigneeFilter").value.trim();
         const params = new URLSearchParams({ limit: "50" });
         if (mode === "admin") {
           await loadAdmin();
@@ -1006,7 +1027,6 @@
         if (source) params.set("source_name", source);
         if (status) params.set("newsroom_status", status);
         if (activeCategory) params.set("source_category", activeCategory);
-        if (assignee) params.set("assignee", assignee);
         const url =
           mode === "priority"
             ? `/priority?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
@@ -1032,7 +1052,7 @@
           showToast(`새 기사 ${items.length - lastArticleCount}건이 목록에 표시됐습니다.`);
         }
         lastArticleCount = items.length;
-        const resultLabel = q || source || status || activeCategory || assignee ? "검색 결과" : "목록";
+        const resultLabel = q || source || status || activeCategory ? "검색 결과" : "목록";
         const resultCount = countInfo ? `${items.length}/${countInfo.count}건` : `${items.length}건`;
         liveStatusEl.textContent = `${resultLabel} ${resultCount} · 미확인 ${unread}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
       }
@@ -1049,8 +1069,6 @@
           statuses.map(async ([value, label]) => {
             const params = new URLSearchParams({ limit: "20", newsroom_status: value });
             if (activeCategory) params.set("source_category", activeCategory);
-            const assignee = document.querySelector("#assigneeFilter").value.trim();
-            if (assignee) params.set("assignee", assignee);
             const items = await fetchJson(`/articles?${params.toString()}`);
             return { value, label, items };
           }),
@@ -1415,9 +1433,6 @@
       document.querySelector("#q").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadArticles().catch((error) => showToast(error.message));
       });
-      document.querySelector("#assigneeFilter").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") loadArticles().catch((error) => showToast(error.message));
-      });
       document.querySelector("#runSearch").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadRuns();
       });
@@ -1440,15 +1455,11 @@
       document.querySelector("#exportCsv").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "1000" });
         if (activeCategory) params.set("source_category", activeCategory);
-        const assignee = document.querySelector("#assigneeFilter").value.trim();
-        if (assignee) params.set("assignee", assignee);
         window.open(`/exports/articles.csv?${params.toString()}`, "_blank");
       });
       document.querySelector("#exportCue").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "100", newsroom_status: "ready" });
         if (activeCategory) params.set("source_category", activeCategory);
-        const assignee = document.querySelector("#assigneeFilter").value.trim();
-        if (assignee) params.set("assignee", assignee);
         window.open(`/exports/cuesheet.txt?${params.toString()}`, "_blank");
       });
       document.querySelector("#backupDb").addEventListener("click", async () => {
