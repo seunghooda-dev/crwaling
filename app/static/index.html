@@ -923,8 +923,17 @@
             : mode === "alerts"
               ? `/alerts?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
               : `/articles?${params.toString()}`;
-        const countUrl = mode === "latest" ? `/articles/count?${new URLSearchParams([...params].filter(([key]) => key !== "limit")).toString()}` : "";
-        const [items, countInfo] = await Promise.all([fetchJson(url), countUrl ? fetchJson(countUrl) : Promise.resolve(null)]);
+        const items = await fetchJson(url);
+        let countInfo = null;
+        if (mode === "latest") {
+          const countParams = new URLSearchParams(params);
+          countParams.delete("limit");
+          try {
+            countInfo = await fetchJson(`/articles/count?${countParams.toString()}`);
+          } catch {
+            countInfo = null;
+          }
+        }
         articlesEl.innerHTML = items.length
           ? items.map(articleTemplate).join("")
           : '<div class="empty">표시할 기사가 없습니다.</div>';
@@ -1295,12 +1304,14 @@
         `;
       }
 
-      document.querySelector("#search").addEventListener("click", loadArticles);
+      document.querySelector("#search").addEventListener("click", () => {
+        loadArticles().catch((error) => showToast(error.message));
+      });
       document.querySelector("#q").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") loadArticles();
+        if (event.key === "Enter") loadArticles().catch((error) => showToast(error.message));
       });
       document.querySelector("#assigneeFilter").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") loadArticles();
+        if (event.key === "Enter") loadArticles().catch((error) => showToast(error.message));
       });
       document.querySelector("#runSearch").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadRuns();
