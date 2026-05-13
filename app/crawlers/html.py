@@ -8,6 +8,7 @@ from app.config import settings
 from app.crawlers.base import Crawler
 from app.models import Article, Source
 from app.text import article_fingerprint, canonicalize_url, normalize_space
+from app.title_extractor import split_title_summary
 
 
 KBS_SUMMARY_MARKERS = (
@@ -119,7 +120,7 @@ class HtmlCrawler(Crawler):
 
     def _split_title_summary(self, source: Source, text: str) -> tuple[str, str | None]:
         if "d.kbs.co.kr" not in source.url:
-            return text, None
+            return split_title_summary(text)
 
         cleaned = text
         published = None
@@ -141,8 +142,7 @@ class HtmlCrawler(Crawler):
         if split_at == -1:
             return text, None
 
-        title = normalize_space(cleaned[:split_at])
-        summary = normalize_space(cleaned[split_at:])
+        title, summary = split_title_summary(cleaned[:split_at], cleaned[split_at:])
         if published:
             summary = normalize_space(f"{summary} {published}")
         return title, summary or None

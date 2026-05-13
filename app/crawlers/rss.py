@@ -10,6 +10,7 @@ from app.content import clean_html_text, extract_media_urls
 from app.crawlers.base import Crawler
 from app.models import Article, Source
 from app.text import article_fingerprint, canonicalize_url, normalize_space
+from app.title_extractor import split_title_summary
 
 
 class RssCrawler(Crawler):
@@ -24,9 +25,9 @@ class RssCrawler(Crawler):
 
         articles: list[Article] = []
         for entry in feed.entries:
-            title = normalize_space(getattr(entry, "title", ""))
+            raw_title = normalize_space(getattr(entry, "title", ""))
             link = getattr(entry, "link", "")
-            if not title or not link:
+            if not raw_title or not link:
                 continue
 
             published_at = self._parse_date(getattr(entry, "published", None) or getattr(entry, "updated", None))
@@ -34,6 +35,7 @@ class RssCrawler(Crawler):
             published_date = published_at.date().isoformat() if published_at else None
             raw_summary = getattr(entry, "summary", "")
             image_urls, video_urls = extract_media_urls(raw_summary)
+            title, summary = split_title_summary(raw_title, clean_html_text(raw_summary))
             articles.append(
                 Article(
                     source_name=source.name,
@@ -44,7 +46,7 @@ class RssCrawler(Crawler):
                     canonical_url=canonical_url,
                     author=getattr(entry, "author", None),
                     published_at=published_at,
-                    summary=clean_html_text(raw_summary),
+                    summary=summary,
                     image_urls=image_urls,
                     video_urls=video_urls,
                     fingerprint=article_fingerprint(title, source.name, published_date),

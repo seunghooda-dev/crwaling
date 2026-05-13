@@ -7,6 +7,7 @@ from app.models import Article
 from app.repository import count_articles, list_articles, list_source_quality
 from app.services.ai_assist import build_ai_assist
 from app.services.scoring import apply_newsroom_scoring
+from app.title_extractor import clean_title_text, split_title_summary
 
 
 def test_clean_html_text_removes_tags():
@@ -17,6 +18,18 @@ def test_extract_media_urls():
     images, videos = extract_media_urls('<img src="a.jpg"><video><source src="b.mp4"></video>')
     assert images == ["a.jpg"]
     assert videos == ["b.mp4"]
+
+
+def test_title_extractor_splits_body_from_long_anchor_text():
+    title, summary = split_title_summary(
+        "트럼프 곧 베이징 도착…서울에선 사전 담판 [앵커] 중국행 전용기에 몸을 실은 미국 트럼프 대통령은 곧 베이징에 도착합니다."
+    )
+    assert title == "트럼프 곧 베이징 도착…서울에선 사전 담판"
+    assert summary.startswith("[앵커]")
+
+
+def test_title_extractor_decodes_entities_and_removes_date_suffix():
+    assert clean_title_text("[포토] &#039;원샷원킬&#039; 솔지 2026.05.13 (19:32)") == "[포토] '원샷원킬' 솔지"
 
 
 def test_scoring_title_breaking_keyword():

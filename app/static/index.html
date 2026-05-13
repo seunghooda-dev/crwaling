@@ -80,7 +80,7 @@
 
       .toolbar {
         display: grid;
-        grid-template-columns: minmax(160px, 210px) minmax(130px, 160px) minmax(220px, 280px) minmax(110px, 130px) minmax(100px, 120px) minmax(110px, 130px);
+        grid-template-columns: minmax(150px, 190px) minmax(120px, 145px) minmax(220px, 280px) minmax(105px, 125px) minmax(95px, 115px) minmax(90px, 105px) minmax(110px, 130px);
         gap: 8px;
         align-items: center;
         justify-content: stretch;
@@ -229,6 +229,12 @@
       button.primary {
         border-color: var(--accent);
         background: var(--accent);
+        color: #fffefa;
+      }
+
+      button.live-active {
+        border-color: var(--green);
+        background: var(--green);
         color: #fffefa;
       }
 
@@ -776,6 +782,7 @@
           <option value="admin">관리</option>
         </select>
         <button class="primary" id="search">조회</button>
+        <button id="liveSearch">실시간 조회</button>
       </div>
       <div class="quickbar" id="quickbar">
         <button data-category="" class="active">전체</button>
@@ -891,6 +898,7 @@
       const detailPanelEl = document.querySelector("#detailPanel");
       const sourceEl = document.querySelector("#source");
       const searchButtonEl = document.querySelector("#search");
+      const liveSearchButtonEl = document.querySelector("#liveSearch");
       const urgentRailEl = document.querySelector("#urgentRail");
       const sourceWarningsEl = document.querySelector("#sourceWarnings");
       const opsStatusEl = document.querySelector("#opsStatus");
@@ -906,6 +914,7 @@
       let lastUrgentIds = new Set();
       let selectedArticleId = undefined;
       let liveRefreshRunning = false;
+      let liveSearchTimer = undefined;
 
       document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
       document.querySelector("#density").value = document.body.dataset.density;
@@ -929,6 +938,12 @@
           throw new Error(text || `HTTP ${response.status}`);
         }
         return response.json();
+      }
+
+      function decodeHtmlEntities(value) {
+        const textarea = document.createElement("textarea");
+        textarea.innerHTML = String(value ?? "");
+        return textarea.value;
       }
 
       async function refreshSourcesBeforeSearch() {
@@ -1207,12 +1222,13 @@
       }
 
       function articleDisplayParts(item) {
-        const title = String(item.title || "");
-        if (item.summary) {
-          return { title, body: item.summary };
+        const title = decodeHtmlEntities(item.title || "");
+        const summary = decodeHtmlEntities(item.summary || "");
+        if (summary) {
+          return { title, body: summary };
         }
         if (item.source_name !== "KBS Disaster Portal") {
-          return { title, body: "" };
+          return splitLongTitle(title);
         }
         const cleaned = title.replace(/\s+\d{4}\.\d{2}\.\d{2}\s+\(\d{2}:\d{2}\)\s*$/, "");
         const markers = [" KBSLIFE", " [안전토크]", " 이와 관련", " 고령 운전자의", " 일본 지진의"];
@@ -1225,6 +1241,26 @@
           title: cleaned.slice(0, splitAt).trim(),
           body: cleaned.slice(splitAt).trim(),
         };
+      }
+
+      function splitLongTitle(title) {
+        const text = String(title || "").trim();
+        if (text.length < 120) return { title: text, body: "" };
+        const markerIndexes = [" [앵커]", " [기자]", " ◇ ", " ◆ ", " 특파원 ", " 기자 "]
+          .map((marker) => text.indexOf(marker))
+          .filter((index) => index > 12);
+        const markerIndex = markerIndexes.sort((a, b) => a - b)[0];
+        if (markerIndex) {
+          return { title: text.slice(0, markerIndex).trim(), body: text.slice(markerIndex).trim() };
+        }
+        const sentence = text.match(/^.{35,120}?(?:[.!?]|[다요죠음임까다]\.)\s+/);
+        if (sentence) {
+          const splitAt = sentence[0].length;
+          return { title: text.slice(0, splitAt).trim(), body: text.slice(splitAt).trim() };
+        }
+        const splitAt = text.lastIndexOf(" ", 100);
+        if (splitAt > 35) return { title: text.slice(0, splitAt).trim(), body: text.slice(splitAt).trim() };
+        return { title: text, body: "" };
       }
 
       function sourceDistanceText(item) {
@@ -1747,9 +1783,36 @@
         loadArticles({ refreshFirst: true }).catch((error) => showToast(error.message));
       }
 
+      function setLiveSearchState(active) {
+        liveSearchButtonEl.classList.toggle("live-active", active);
+        liveSearchButtonEl.textContent = active ? "실시간 중지" : "실시간 조회";
+        liveSearchButtonEl.title = active ? "10초마다 현재 검색 조건으로 새로 수집합니다." : "현재 검색 조건을 10초마다 실시간 수집합니다.";
+      }
+
+      function toggleLiveSearch() {
+        if (liveSearchTimer) {
+          clearInterval(liveSearchTimer);
+          liveSearchTimer = undefined;
+          setLiveSearchState(false);
+          liveStatusEl.textContent = `실시간 조회 중지 · ${new Date().toLocaleTimeString("ko-KR")}`;
+          return;
+        }
+        setLiveSearchState(true);
+        showToast("10초마다 현재 검색 조건으로 실시간 수집합니다.");
+        runSearch();
+        liveSearchTimer = setInterval(() => {
+          if (liveRefreshRunning) return;
+          loadArticles({ refreshFirst: true }).catch((error) => {
+            showToast(error.message);
+            toggleLiveSearch();
+          });
+        }, 10000);
+      }
+
       document.querySelector("#search").addEventListener("click", () => {
         runSearch();
       });
+      liveSearchButtonEl.addEventListener("click", toggleLiveSearch);
       document.querySelector("#q").addEventListener("keydown", (event) => {
         if (event.key === "Enter") runSearch();
       });
