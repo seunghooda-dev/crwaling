@@ -1,5 +1,8 @@
 {
   "webhook_url": "",
+  "telegram_bot_token": "",
+  "telegram_chat_id": "",
+  "kakao_webhook_url": "",
   "email_to": "",
   "email_from": "",
   "smtp_host": "",

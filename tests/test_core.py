@@ -6,6 +6,7 @@ from app.content import clean_html_text, extract_media_urls
 from app.models import Article
 from app.repository import count_articles, list_articles, list_source_quality
 from app.services.ai_assist import build_ai_assist
+from app.services.notification_service import notify_search_matches
 from app.services.scoring import apply_newsroom_scoring
 from app.title_extractor import clean_title_text, split_title_summary
 
@@ -30,6 +31,10 @@ def test_title_extractor_splits_body_from_long_anchor_text():
 
 def test_title_extractor_decodes_entities_and_removes_date_suffix():
     assert clean_title_text("[포토] &#039;원샷원킬&#039; 솔지 2026.05.13 (19:32)") == "[포토] '원샷원킬' 솔지"
+
+
+def test_search_notification_without_config_is_noop():
+    assert notify_search_matches([{"title": "교통사고 발생", "url": "https://x"}], "교통사고") == 0
 
 
 def test_scoring_title_breaking_keyword():

@@ -36,6 +36,7 @@ from app.services.cluster_service import rebuild_clusters
 from app.services.crawl_service import CrawlService
 from app.services.detail_service import enrich_article_details
 from app.services.export_service import articles_to_csv, articles_to_cuesheet
+from app.services.notification_service import notify_search_matches
 from app.services.retention_service import prune_old_alerts, prune_old_data
 from app.services.validation_service import validate_all
 
@@ -92,6 +93,7 @@ class KeywordGroupsUpdate(BaseModel):
 class CrawlRefreshRequest(BaseModel):
     source_name: str | None = None
     source_category: str | None = None
+    q: str | None = None
 
 
 @app.on_event("startup")
@@ -179,16 +181,19 @@ def crawl_scheduler_status(conn=Depends(db_session)) -> dict:
 @app.post("/crawl/refresh")
 def crawl_refresh(payload: CrawlRefreshRequest, conn=Depends(db_session)) -> dict:
     started = time.perf_counter()
-    results = CrawlService().crawl_enabled_sources(
+    crawl_result = CrawlService().crawl_enabled_sources_with_articles(
         conn,
         source_name=payload.source_name,
         source_category=payload.source_category,
     )
+    results = crawl_result["results"]
+    notified_count = notify_search_matches(crawl_result["new_articles"], payload.q)
     elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
     return {
         "results": results,
         "source_count": len(results),
         "new_article_count": sum(count for count in results.values() if count > 0),
+        "search_match_notification_count": notified_count,
         "failed_source_count": sum(1 for count in results.values() if count < 0),
         "elapsed_ms": elapsed_ms,
     }

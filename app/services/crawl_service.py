@@ -32,8 +32,17 @@ class CrawlService:
         source_name: str | None = None,
         source_category: str | None = None,
     ) -> dict[str, int]:
+        return self.crawl_enabled_sources_with_articles(conn, source_name, source_category)["results"]
+
+    def crawl_enabled_sources_with_articles(
+        self,
+        conn: sqlite3.Connection,
+        source_name: str | None = None,
+        source_category: str | None = None,
+    ) -> dict:
         logger = logging.getLogger("crawler")
         results: dict[str, int] = {}
+        new_articles: list[dict] = []
         for row in list_sources(conn):
             if not row["enabled"]:
                 continue
@@ -72,6 +81,7 @@ class CrawlService:
                             if snapshot_path:
                                 update_article_snapshot_path(conn, stored["id"], str(snapshot_path))
                             record_alert_if_needed(conn, stored)
+                            new_articles.append(dict(stored))
                 finish_crawl_run(conn, run_id, "success", count)
                 conn.commit()
                 results[source.name] = count
@@ -81,4 +91,4 @@ class CrawlService:
                 conn.commit()
                 results[source.name] = -1
                 logger.exception("crawl failed source=%s", source.name)
-        return results
+        return {"results": results, "new_articles": new_articles}

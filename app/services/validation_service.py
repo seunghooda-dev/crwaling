@@ -85,8 +85,13 @@ def validate_notifications(path: Path = Path("config/notifications.json")) -> li
     except json.JSONDecodeError as exc:
         return [f"{path}: invalid JSON: {exc}"]
     errors = []
-    if payload.get("webhook_url") and not urlparse(str(payload["webhook_url"])).scheme.startswith("http"):
-        errors.append(f"{path}: invalid webhook_url")
+    for key in ("webhook_url", "kakao_webhook_url"):
+        if payload.get(key) and not urlparse(str(payload[key])).scheme.startswith("http"):
+            errors.append(f"{path}: invalid {key}")
+    if payload.get("telegram_bot_token") and not payload.get("telegram_chat_id"):
+        errors.append(f"{path}: telegram_chat_id is required when telegram_bot_token is set")
+    if payload.get("telegram_chat_id") and not payload.get("telegram_bot_token"):
+        errors.append(f"{path}: telegram_bot_token is required when telegram_chat_id is set")
     if payload.get("smtp_host") and not payload.get("email_to"):
         errors.append(f"{path}: email_to is required when smtp_host is set")
     return errors

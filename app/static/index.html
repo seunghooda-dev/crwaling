@@ -233,8 +233,8 @@
       }
 
       button.live-active {
-        border-color: var(--green);
-        background: var(--green);
+        border-color: var(--urgent);
+        background: var(--urgent);
         color: #fffefa;
       }
 
@@ -956,6 +956,7 @@
         const payload = {};
         if (sourceEl.value) payload.source_name = sourceEl.value;
         if (activeCategory) payload.source_category = activeCategory;
+        if (document.querySelector("#q").value.trim()) payload.q = document.querySelector("#q").value.trim();
         liveStatusEl.textContent = "각 출처 접속 중 · 새 기사 확인 중";
         try {
           const result = await fetchJson("/crawl/refresh", {
@@ -965,7 +966,8 @@
           });
           const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
           const failedText = result.failed_source_count ? ` · 실패 ${result.failed_source_count}곳` : "";
-          showToast(`실시간 수집 완료: ${result.source_count}곳 확인, 새 기사 ${result.new_article_count}건 (${seconds}초)${failedText}`);
+          const notifyText = result.search_match_notification_count ? ` · 알림 ${result.search_match_notification_count}건` : "";
+          showToast(`실시간 수집 완료: ${result.source_count}곳 확인, 새 기사 ${result.new_article_count}건 (${seconds}초)${notifyText}${failedText}`);
           return result;
         } finally {
           liveRefreshRunning = false;
@@ -1786,7 +1788,7 @@
       function setLiveSearchState(active) {
         liveSearchButtonEl.classList.toggle("live-active", active);
         liveSearchButtonEl.textContent = active ? "실시간 중지" : "실시간 조회";
-        liveSearchButtonEl.title = active ? "10초마다 현재 검색 조건으로 새로 수집합니다." : "현재 검색 조건을 10초마다 실시간 수집합니다.";
+        liveSearchButtonEl.title = active ? "1분마다 현재 검색 조건으로 새로 수집합니다." : "현재 검색 조건을 1분마다 실시간 수집합니다.";
       }
 
       function toggleLiveSearch() {
@@ -1798,7 +1800,7 @@
           return;
         }
         setLiveSearchState(true);
-        showToast("10초마다 현재 검색 조건으로 실시간 수집합니다.");
+        showToast("1분마다 현재 검색 조건으로 실시간 수집합니다.");
         runSearch();
         liveSearchTimer = setInterval(() => {
           if (liveRefreshRunning) return;
@@ -1806,7 +1808,7 @@
             showToast(error.message);
             toggleLiveSearch();
           });
-        }, 10000);
+        }, 60000);
       }
 
       document.querySelector("#search").addEventListener("click", () => {

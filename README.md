@@ -104,7 +104,8 @@ uvicorn app.main:app --reload
 - 중요 기사 확인 체크리스트
 - 긴급 후보 화면 강조와 알림음
 - 기사 상세 페이지 수집으로 본문/대표 이미지/영상 URL 보강
-- `config/notifications.json` 설정 시 웹훅 또는 이메일 알림 발송
+- `config/notifications.json` 설정 시 웹훅, 텔레그램, 카카오 릴레이 웹훅, 이메일 알림 발송
+- 실시간 조회에서 검색어 매칭 새 기사 감지 시 알림 발송
 - CSV/큐시트 내보내기
 - 선택한 출처 분류 기준 CSV/큐시트 내보내기
 - SQLite DB 백업
