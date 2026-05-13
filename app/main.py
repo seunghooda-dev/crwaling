@@ -10,7 +10,9 @@ from app.database import db_session, init_db
 from app.config import settings
 from app.repository import (
     get_article,
+    acknowledge_all_alert_events,
     acknowledge_alert_event,
+    count_articles,
     list_alert_articles,
     list_alert_events,
     list_cluster_articles,
@@ -22,7 +24,9 @@ from app.repository import (
     list_source_quality,
     newsroom_stats,
     save_ai_assist,
+    search_crawl_runs,
     scheduler_status,
+    update_article_checklist,
     update_article_workflow,
 )
 from app.services.ai_assist import build_ai_assist
@@ -73,6 +77,10 @@ class ArticleWorkflowUpdate(BaseModel):
 class SourceUpdate(BaseModel):
     enabled: bool | None = None
     crawl_interval_seconds: int | None = None
+
+
+class ChecklistUpdate(BaseModel):
+    verification_checklist: dict[str, bool]
 
 
 @app.on_event("startup")
@@ -148,7 +156,7 @@ def articles(
     source_category: str | None = None,
     assignee: str | None = None,
     conn=Depends(db_session),
-) -> list[dict]:
+    ) -> list[dict]:
     return list_articles(
         conn,
         limit=limit,
@@ -159,6 +167,29 @@ def articles(
         source_category=source_category,
         assignee=assignee,
     )
+
+
+@app.get("/articles/count")
+def articles_count(
+    source_name: str | None = None,
+    q: str | None = None,
+    min_importance: float | None = Query(default=None, ge=0),
+    newsroom_status: str | None = None,
+    source_category: str | None = None,
+    assignee: str | None = None,
+    conn=Depends(db_session),
+) -> dict:
+    return {
+        "count": count_articles(
+            conn,
+            source_name=source_name,
+            q=q,
+            min_importance=min_importance,
+            newsroom_status=newsroom_status,
+            source_category=source_category,
+            assignee=assignee,
+        )
+    }
 
 
 @app.get("/priority")
@@ -195,6 +226,11 @@ def acknowledge_alert(alert_id: int, conn=Depends(db_session)) -> dict:
     if item is None:
         raise HTTPException(status_code=404, detail="Alert event not found")
     return item
+
+
+@app.post("/alert-events/ack-all")
+def acknowledge_all_alerts(conn=Depends(db_session)) -> dict:
+    return {"acknowledged": acknowledge_all_alert_events(conn)}
 
 
 @app.get("/clusters")
@@ -234,6 +270,16 @@ def update_workflow(article_id: int, payload: ArticleWorkflowUpdate, conn=Depend
     return item
 
 
+@app.patch("/articles/{article_id}/checklist")
+def update_checklist(article_id: int, payload: ChecklistUpdate, conn=Depends(db_session)) -> dict:
+    import json
+
+    item = update_article_checklist(conn, article_id, json.dumps(payload.verification_checklist, ensure_ascii=False))
+    if item is None:
+        raise HTTPException(status_code=404, detail="Article not found")
+    return item
+
+
 @app.post("/articles/{article_id}/ai-assist")
 def ai_assist(article_id: int, conn=Depends(db_session)) -> dict:
     item = get_article(conn, article_id)
@@ -267,6 +313,16 @@ def rebuild_issue_clusters(limit: int = Query(default=500, ge=1, le=5000), conn=
 @app.get("/crawl-runs")
 def crawl_runs(limit: int = Query(default=50, ge=1, le=200), conn=Depends(db_session)) -> list[dict]:
     return list_crawl_runs(conn, limit=limit)
+
+
+@app.get("/crawl-runs/search")
+def crawl_run_search(
+    q: str | None = None,
+    status: str | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    conn=Depends(db_session),
+) -> list[dict]:
+    return search_crawl_runs(conn, q=q, status=status, limit=limit)
 
 
 @app.get("/exports/articles.csv")

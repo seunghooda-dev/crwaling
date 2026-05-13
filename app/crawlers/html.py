@@ -25,10 +25,10 @@ class HtmlCrawler(Crawler):
 
         soup = BeautifulSoup(response.text, "html.parser")
         articles: list[Article] = []
-        for anchor in soup.select("a[href]"):
+        for anchor in soup.select(self._selector_for(source)):
             title = normalize_space(anchor.get_text(" "))
             href = anchor.get("href")
-            if not title or not href or len(title) < 8:
+            if not self._is_candidate(source, title, href):
                 continue
             url = str(httpx.URL(str(source.url)).join(href))
             canonical_url = canonicalize_url(url)
@@ -45,6 +45,29 @@ class HtmlCrawler(Crawler):
                 )
             )
         return articles[:100]
+
+    def _selector_for(self, source: Source) -> str:
+        if "nfa.go.kr" in source.url:
+            return "a[href*='mode=view'], a[href*='cntId=']"
+        if "police.go.kr" in source.url:
+            return "a[href*='bbs'], a[href*='BD_selectBbs']"
+        if "mois.go.kr" in source.url:
+            return "a[href*='bbsId'], a[href*='nttId']"
+        if "weather.go.kr" in source.url:
+            return "a[href], td a[href]"
+        if "safekorea.go.kr" in source.url or "d.kbs.co.kr" in source.url:
+            return "a[href]"
+        return "a[href]"
+
+    def _is_candidate(self, source: Source, title: str, href: str | None) -> bool:
+        if not title or not href or len(title) < 8:
+            return False
+        bad_words = ("로그인", "회원가입", "사이트맵", "개인정보", "이메일", "바로가기", "메뉴", "검색")
+        if any(word in title for word in bad_words):
+            return False
+        if source.source_category in {"fire", "police", "disaster"}:
+            return any(token in href for token in ("view", "bbs", "nttId", "cntId", "detail", ".do", ".jsp"))
+        return True
 
     def _get_with_retry(self, url: str, headers: dict[str, str], source: Source) -> httpx.Response:
         last_error: Exception | None = None

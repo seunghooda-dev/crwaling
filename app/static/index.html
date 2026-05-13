@@ -274,13 +274,15 @@
         align-self: start;
         max-height: calc(100vh - 32px);
         overflow: auto;
+        min-width: 0;
       }
 
       article {
         display: grid;
-        gap: 10px;
-        padding: 14px;
+        gap: 6px;
+        padding: 12px 14px;
         border-left: 4px solid transparent;
+        min-width: 0;
       }
 
       article.read {
@@ -303,8 +305,9 @@
       article h3 {
         margin: 0;
         font-size: 17px;
-        line-height: 1.35;
+        line-height: 1.28;
         letter-spacing: 0;
+        overflow-wrap: anywhere;
       }
 
       article a {
@@ -325,11 +328,13 @@
         flex-wrap: wrap;
         gap: 7px;
         align-items: center;
+        min-width: 0;
       }
 
       .meta {
         color: var(--muted);
         font-size: 12px;
+        line-height: 1.35;
       }
 
       .tag {
@@ -350,9 +355,12 @@
         width: 150px;
       }
 
-      .note {
-        display: grid;
-        gap: 8px;
+      .source-distance {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 12px;
       }
 
       .assist {
@@ -369,6 +377,17 @@
         color: #3f4b58;
         font-size: 13px;
         line-height: 1.55;
+        overflow-wrap: anywhere;
+        word-break: keep-all;
+      }
+
+      .summary a,
+      .detail-panel strong {
+        overflow-wrap: anywhere;
+      }
+
+      .detail-panel .stack {
+        min-width: 0;
       }
 
       .empty {
@@ -516,6 +535,32 @@
         min-width: 0;
       }
 
+      .compare-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .compare-table th,
+      .compare-table td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .checklist {
+        display: grid;
+        gap: 6px;
+      }
+
+      .checklist label {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        font-size: 13px;
+      }
+
       @media (max-width: 980px) {
         main {
           grid-template-columns: 1fr;
@@ -620,11 +665,23 @@
         </section>
         <section class="panel">
           <h2>알림 로그</h2>
-          <div class="side-body" id="alertEvents"></div>
+          <div class="side-body">
+            <button id="ackAllAlerts">알림 전체 확인</button>
+            <div id="alertEvents"></div>
+          </div>
         </section>
         <section class="panel">
           <h2>최근 실행</h2>
-          <div class="side-body" id="runs"></div>
+          <div class="side-body">
+            <input id="runSearch" placeholder="수집 로그 검색" />
+            <select id="runStatus">
+              <option value="">전체</option>
+              <option value="success">성공</option>
+              <option value="failed">실패</option>
+              <option value="running">실행중</option>
+            </select>
+            <div id="runs"></div>
+          </div>
         </section>
         <section class="panel">
           <h2>출처 품질</h2>
@@ -700,6 +757,16 @@
         }
       }
 
+      function parseJsonObject(value) {
+        if (!value) return {};
+        try {
+          const parsed = JSON.parse(value);
+          return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+
       function readIds() {
         try {
           return new Set(JSON.parse(localStorage.getItem(readKey) || "[]"));
@@ -755,10 +822,15 @@
           .slice(0, 8)
           .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
           .join("");
-        const note = item.desk_notes || "";
+        const regions = parseJsonList(item.region_tags)
+          .slice(0, 4)
+          .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+          .join("");
+        const qualityFlags = parseJsonList(item.quality_flags).slice(0, 3).join(", ");
         const assist = item.ai_summary
           ? `<div class="assist">${escapeHtml(item.ai_summary)}\n\n${escapeHtml(item.check_points || "")}</div>`
           : "";
+        const sourceDistance = sourceDistanceText(item);
         return `
           <article data-id="${item.id}" data-priority="${priority}" class="${read ? "read" : ""} ${String(item.id) === String(selectedArticleId) ? "selected" : ""}">
             <h3><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.title)}</a></h3>
@@ -768,10 +840,12 @@
               <span class="status-pill category-pill ${escapeHtml(item.source_category || "")}">${escapeHtml(categoryLabel(item.source_category))}</span>
               <span>${escapeHtml(item.published_at || item.collected_at || "")}</span>
               <span class="score">score ${score.toFixed(1)}</span>
+              <span class="status-pill">품질 ${Number(item.quality_score || 0).toFixed(0)}</span>
               <span class="status-pill ${item.verification_status === "needs_review" ? "review" : ""}">${escapeHtml(item.verification_status)}</span>
               <span class="status-pill ${item.newsroom_status === "ready" ? "ready" : ""}">${escapeHtml(item.assignee || "담당자 없음")}</span>
             </div>
-            <div class="tags">${tags}</div>
+            <div class="tags">${tags}${regions}${qualityFlags ? `<span class="tag">${escapeHtml(qualityFlags)}</span>` : ""}</div>
+            <div class="source-distance">${escapeHtml(sourceDistance)}</div>
             <div class="workflow">
               <select data-field="newsroom_status">
                 ${statusOption("new", "신규", item.newsroom_status)}
@@ -793,10 +867,7 @@
               <button data-action="enrich">상세 수집</button>
               <button data-action="detail">상세</button>
             </div>
-            <div class="note">
-              <textarea data-field="desk_notes" placeholder="데스크 메모">${escapeHtml(note)}</textarea>
-              ${assist}
-            </div>
+            ${assist}
           </article>
         `;
       }
@@ -815,6 +886,15 @@
           government: "정부",
           news: "뉴스",
         }[value] || value || "기타";
+      }
+
+      function sourceDistanceText(item) {
+        const sourceCount = Number(item.cluster_source_count || 0);
+        const articleCount = Number(item.cluster_article_count || 0);
+        if (sourceCount > 1) {
+          return `출처 간 거리: 같은 이슈가 ${sourceCount}개 출처, ${articleCount}건에서 확인됨`;
+        }
+        return "출처 간 거리: 단일 출처 이슈";
       }
 
       async function loadArticles() {
@@ -843,7 +923,8 @@
             : mode === "alerts"
               ? `/alerts?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
               : `/articles?${params.toString()}`;
-        const items = await fetchJson(url);
+        const countUrl = mode === "latest" ? `/articles/count?${new URLSearchParams([...params].filter(([key]) => key !== "limit")).toString()}` : "";
+        const [items, countInfo] = await Promise.all([fetchJson(url), countUrl ? fetchJson(countUrl) : Promise.resolve(null)]);
         articlesEl.innerHTML = items.length
           ? items.map(articleTemplate).join("")
           : '<div class="empty">표시할 기사가 없습니다.</div>';
@@ -852,7 +933,9 @@
           showToast(`새 기사 ${items.length - lastArticleCount}건이 목록에 표시됐습니다.`);
         }
         lastArticleCount = items.length;
-        liveStatusEl.textContent = `자동 갱신 중 · 미확인 ${unread}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
+        const resultLabel = q || source || status || activeCategory || assignee ? "검색 결과" : "목록";
+        const resultCount = countInfo ? `${items.length}/${countInfo.count}건` : `${items.length}건`;
+        liveStatusEl.textContent = `${resultLabel} ${resultCount} · 미확인 ${unread}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
       }
 
       async function loadBoard() {
@@ -973,17 +1056,45 @@
         articlesEl.querySelector(`article[data-id="${CSS.escape(String(id))}"]`)?.classList.add("selected");
         const images = parseJsonList(item.image_urls).slice(0, 4);
         const videos = parseJsonList(item.video_urls).slice(0, 4);
+        const regions = parseJsonList(item.region_tags);
+        const qualityFlags = parseJsonList(item.quality_flags);
+        const checklist = {
+          source_checked: false,
+          cross_checked: false,
+          agency_checked: false,
+          media_checked: false,
+          broadcast_ready: false,
+          ...parseJsonObject(item.verification_checklist),
+        };
         detailPanelEl.innerHTML = `
           <div class="stack">
             <strong>${escapeHtml(item.title)}</strong>
             <div class="meta">${escapeHtml(item.source_name)} · score ${Number(item.importance_score || 0).toFixed(1)}</div>
+            <div class="tags">
+              ${regions.map((region) => `<span class="tag">${escapeHtml(region)}</span>`).join("")}
+              <span class="tag">품질 ${Number(item.quality_score || 0).toFixed(0)}</span>
+              ${qualityFlags.map((flag) => `<span class="tag">${escapeHtml(flag)}</span>`).join("")}
+            </div>
             <div class="summary">${escapeHtml(item.body_text || item.summary || "상세 본문이 아직 없습니다.")}</div>
             <div class="tags">${parseJsonList(item.keywords).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
+            <div class="checklist" data-checklist-id="${item.id}">
+              ${checklistItem("source_checked", "원문 확인", checklist)}
+              ${checklistItem("cross_checked", "타사 확인", checklist)}
+              ${checklistItem("agency_checked", "관계기관 확인", checklist)}
+              ${checklistItem("media_checked", "영상/사진 확인", checklist)}
+              ${checklistItem("broadcast_ready", "방송 가능", checklist)}
+            </div>
+            <button data-action="save-checklist" data-id="${item.id}">체크리스트 저장</button>
             <div class="summary"><strong>이미지</strong><br />${images.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("<br />") || "-"}</div>
             <div class="summary"><strong>영상</strong><br />${videos.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("<br />") || "-"}</div>
+            <div class="summary"><strong>스냅샷</strong><br />${escapeHtml(item.raw_html_path || "-")}</div>
             <div class="summary"><strong>AI 보조</strong><br />${escapeHtml(item.ai_summary || "AI 보조 버튼으로 생성할 수 있습니다.")}</div>
           </div>
         `;
+      }
+
+      function checklistItem(key, label, checklist) {
+        return `<label><input type="checkbox" data-check="${key}" ${checklist[key] ? "checked" : ""} /> ${label}</label>`;
       }
 
       async function loadUrgentRail() {
@@ -1069,7 +1180,12 @@
       }
 
       async function loadRuns() {
-        const runs = await fetchJson("/crawl-runs?limit=8");
+        const q = document.querySelector("#runSearch").value.trim();
+        const status = document.querySelector("#runStatus").value;
+        const params = new URLSearchParams({ limit: "8" });
+        if (q) params.set("q", q);
+        if (status) params.set("status", status);
+        const runs = await fetchJson(`/crawl-runs/search?${params.toString()}`);
         runsEl.innerHTML = runs
           .map(
             (run) => `
@@ -1110,7 +1226,30 @@
       async function showClusterDetail(clusterId) {
         const items = await fetchJson(`/clusters/${encodeURIComponent(clusterId)}/articles?limit=30`);
         articlesEl.innerHTML = items.length
-          ? items.map(articleTemplate).join("")
+          ? `
+            <article>
+              <h3>이슈 묶음 비교</h3>
+              <table class="compare-table">
+                <thead><tr><th>출처</th><th>지역</th><th>제목</th><th>시간</th><th>품질</th></tr></thead>
+                <tbody>
+                  ${items
+                    .map(
+                      (item) => `
+                        <tr data-id="${item.id}">
+                          <td>${escapeHtml(item.source_name)}</td>
+                          <td>${escapeHtml(parseJsonList(item.region_tags).join(", ") || "-")}</td>
+                          <td>${escapeHtml(item.title)}</td>
+                          <td>${escapeHtml(item.published_at || item.collected_at || "-")}</td>
+                          <td>${Number(item.quality_score || 0).toFixed(0)}</td>
+                        </tr>
+                      `,
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </article>
+            ${items.map(articleTemplate).join("")}
+          `
           : '<div class="empty">묶음 안에 표시할 기사가 없습니다.</div>';
         liveStatusEl.textContent = `이슈 묶음 ${items.length}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
       }
@@ -1163,6 +1302,10 @@
       document.querySelector("#assigneeFilter").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadArticles();
       });
+      document.querySelector("#runSearch").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") loadRuns();
+      });
+      document.querySelector("#runStatus").addEventListener("change", loadRuns);
       document.querySelector("#presetbar").addEventListener("click", (event) => {
         const query = event.target.dataset?.query;
         if (!query) return;
@@ -1207,6 +1350,11 @@
         showToast(`오래된 알림 ${result.deleted_alerts}건을 정리했습니다.`);
         await Promise.all([loadAlertEvents(), loadStats()]);
       });
+      document.querySelector("#ackAllAlerts").addEventListener("click", async () => {
+        const result = await fetchJson("/alert-events/ack-all", { method: "POST" });
+        showToast(`알림 ${result.acknowledged}건을 확인 처리했습니다.`);
+        await Promise.all([loadAlertEvents(), loadStats()]);
+      });
       document.querySelector("#validateConfig").addEventListener("click", async () => {
         const result = await fetchJson("/admin/validate");
         showToast(result.ok ? "설정 정상" : result.errors.join("\\n"));
@@ -1220,6 +1368,11 @@
         if (item) showDetail(item.dataset.id).catch((error) => showToast(error.message));
       });
       articlesEl.addEventListener("click", (event) => {
+        const compareRow = event.target.closest(".compare-table tr[data-id]");
+        if (compareRow) {
+          showDetail(compareRow.dataset.id).catch((error) => showToast(error.message));
+          return;
+        }
         if (event.target.dataset.sourceId) {
           fetchJson(`/sources/${event.target.dataset.sourceId}`, {
             method: "PATCH",
@@ -1245,6 +1398,21 @@
         if (action === "assist") buildAssist(article);
         if (action === "enrich") enrichArticle(article);
         if (action === "detail") showDetail(article.dataset.id);
+      });
+
+      detailPanelEl.addEventListener("click", async (event) => {
+        if (event.target.dataset.action !== "save-checklist") return;
+        const id = event.target.dataset.id;
+        const checklist = {};
+        detailPanelEl.querySelectorAll("[data-check]").forEach((field) => {
+          checklist[field.dataset.check] = field.checked;
+        });
+        await fetchJson(`/articles/${id}/checklist`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ verification_checklist: checklist }),
+        });
+        showToast("체크리스트를 저장했습니다.");
       });
 
       async function refreshDashboard() {

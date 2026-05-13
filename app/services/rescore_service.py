@@ -3,8 +3,9 @@ import sqlite3
 
 from app.content import clean_html_text, extract_media_urls
 from app.models import Article
-from app.repository import get_article, update_article_score, update_article_summary_and_media
+from app.repository import get_article, update_article_quality, update_article_score, update_article_summary_and_media
 from app.services.alert_service import record_alert_if_needed
+from app.services.quality_service import checklist_json, enrich_article_quality
 from app.services.scoring import apply_newsroom_scoring
 
 
@@ -32,12 +33,21 @@ def rescore_articles(conn: sqlite3.Connection) -> int:
             verification_status=row["verification_status"],
         )
         scored = apply_newsroom_scoring(article)
+        scored = enrich_article_quality(scored)
         update_article_score(
             conn,
             row["id"],
             json.dumps(scored.keywords, ensure_ascii=False),
             scored.importance_score,
             scored.verification_status,
+        )
+        update_article_quality(
+            conn,
+            row["id"],
+            json.dumps(scored.region_tags, ensure_ascii=False),
+            scored.quality_score,
+            json.dumps(scored.quality_flags, ensure_ascii=False),
+            checklist_json(),
         )
         stored = get_article(conn, row["id"])
         if stored:

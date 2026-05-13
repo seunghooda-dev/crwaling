@@ -10,9 +10,11 @@ from app.repository import (
     insert_article,
     list_sources,
     start_crawl_run,
+    set_app_state,
     update_article_snapshot_path,
 )
 from app.services.alert_service import record_alert_if_needed
+from app.services.quality_service import enrich_article_quality
 from app.services.scoring import apply_newsroom_scoring
 from app.services.snapshot_service import save_article_snapshot
 
@@ -47,8 +49,11 @@ class CrawlService:
             run_id = start_crawl_run(conn, source.name)
             count = 0
             try:
+                set_app_state(conn, "auto_crawl_heartbeat", source.name)
+                conn.commit()
                 logger.info("crawl start source=%s", source.name)
                 for article in crawler.crawl(source):
+                    article = enrich_article_quality(article)
                     article = apply_newsroom_scoring(article)
                     if insert_article(conn, article):
                         count += 1

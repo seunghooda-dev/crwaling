@@ -1,4 +1,5 @@
 import hashlib
+import json
 import re
 from difflib import SequenceMatcher
 
@@ -30,14 +31,15 @@ def rebuild_clusters(conn, limit: int | None = None) -> int:
         representatives: list[tuple[str, str]] = []
         for article in bucket:
             normalized = normalize_title(article["title"])
+            signature = cluster_signature(article, normalized)
             cluster_id = None
             for rep_title, rep_cluster in representatives:
-                if SequenceMatcher(None, normalized, rep_title).ratio() >= 0.68:
+                if SequenceMatcher(None, signature, rep_title).ratio() >= 0.7:
                     cluster_id = rep_cluster
                     break
             if cluster_id is None:
-                cluster_id = _cluster_id(normalized, article.get("published_at") or article.get("collected_at") or "")
-                representatives.append((normalized, cluster_id))
+                cluster_id = _cluster_id(signature, article.get("published_at") or article.get("collected_at") or "")
+                representatives.append((signature, cluster_id))
             update_article_cluster(conn, article["id"], cluster_id)
             changed += 1
     conn.commit()
@@ -49,6 +51,24 @@ def normalize_title(title: str) -> str:
     text = re.sub(r"['\"“”‘’…·,.:;!?()]", " ", text)
     tokens = [token for token in normalize_space(text).split(" ") if token and token not in STOPWORDS]
     return " ".join(tokens).lower()
+
+
+def cluster_signature(article: dict, normalized_title: str) -> str:
+    keywords = _json_list(article.get("keywords"))
+    regions = _json_list(article.get("region_tags"))
+    important_keywords = " ".join(keywords[:5])
+    region_part = " ".join(regions[:3])
+    return normalize_space(f"{region_part} {important_keywords} {normalized_title}").lower()
+
+
+def _json_list(value: str | None) -> list[str]:
+    if not value:
+        return []
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, list) else []
+    except json.JSONDecodeError:
+        return []
 
 
 def _date_key(article: dict) -> str:

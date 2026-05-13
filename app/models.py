@@ -39,6 +39,10 @@ class Article:
     keywords: list[str] = field(default_factory=list)
     image_urls: list[str] = field(default_factory=list)
     video_urls: list[str] = field(default_factory=list)
+    region_tags: list[str] = field(default_factory=list)
+    quality_score: float = 0
+    quality_flags: list[str] = field(default_factory=list)
+    verification_checklist: dict[str, bool] = field(default_factory=dict)
     duplicate_group_id: str | None = None
     importance_score: float = 0
     verification_status: str = "unchecked"

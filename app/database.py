@@ -47,6 +47,10 @@ CREATE TABLE IF NOT EXISTS articles (
     status_updated_at TEXT,
     ai_summary TEXT,
     check_points TEXT,
+    region_tags TEXT,
+    quality_score REAL NOT NULL DEFAULT 0,
+    quality_flags TEXT,
+    verification_checklist TEXT,
     raw_html_path TEXT
 );
 
@@ -81,6 +85,12 @@ CREATE TABLE IF NOT EXISTS alert_events (
 
 CREATE INDEX IF NOT EXISTS idx_alert_events_created_at ON alert_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_alert_events_acknowledged ON alert_events(acknowledged);
+
+CREATE TABLE IF NOT EXISTS app_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -92,6 +102,10 @@ ARTICLE_MIGRATIONS = {
     "status_updated_at": "ALTER TABLE articles ADD COLUMN status_updated_at TEXT",
     "ai_summary": "ALTER TABLE articles ADD COLUMN ai_summary TEXT",
     "check_points": "ALTER TABLE articles ADD COLUMN check_points TEXT",
+    "region_tags": "ALTER TABLE articles ADD COLUMN region_tags TEXT",
+    "quality_score": "ALTER TABLE articles ADD COLUMN quality_score REAL NOT NULL DEFAULT 0",
+    "quality_flags": "ALTER TABLE articles ADD COLUMN quality_flags TEXT",
+    "verification_checklist": "ALTER TABLE articles ADD COLUMN verification_checklist TEXT",
 }
 
 
@@ -118,6 +132,11 @@ CREATE TABLE IF NOT EXISTS alert_events (
 );
 CREATE INDEX IF NOT EXISTS idx_alert_events_created_at ON alert_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_alert_events_acknowledged ON alert_events(acknowledged);
+CREATE TABLE IF NOT EXISTS app_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 

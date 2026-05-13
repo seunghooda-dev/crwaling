@@ -106,6 +106,11 @@ def auto_crawl(interval_seconds: int) -> None:
     while True:
         seed_sources()
         crawl_once()
+        with connect() as conn:
+            from app.repository import set_app_state
+
+            set_app_state(conn, "auto_crawl_heartbeat", f"sleeping {interval_seconds}s")
+            conn.commit()
         sleep(interval_seconds)
 
 

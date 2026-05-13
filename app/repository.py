@@ -48,9 +48,10 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
         INSERT OR IGNORE INTO articles (
             source_name, source_type, source_category, title, url, canonical_url, author, published_at,
             body_text, summary, category, keywords, image_urls, video_urls, fingerprint,
-            duplicate_group_id, importance_score, verification_status, raw_html_path
+            duplicate_group_id, importance_score, verification_status, region_tags, quality_score,
+            quality_flags, verification_checklist, raw_html_path
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             article.source_name,
@@ -71,6 +72,10 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
             article.duplicate_group_id,
             article.importance_score,
             article.verification_status,
+            json.dumps(article.region_tags, ensure_ascii=False),
+            article.quality_score,
+            json.dumps(article.quality_flags, ensure_ascii=False),
+            json.dumps(article.verification_checklist, ensure_ascii=False),
             article.raw_html_path,
         ),
     )
@@ -87,16 +92,14 @@ def list_sources(conn: sqlite3.Connection) -> list[dict]:
     return [dict(row) for row in rows]
 
 
-def list_articles(
-    conn: sqlite3.Connection,
-    limit: int = 50,
+def _article_filters(
     source_name: str | None = None,
     q: str | None = None,
     min_importance: float | None = None,
     newsroom_status: str | None = None,
     source_category: str | None = None,
     assignee: str | None = None,
-) -> list[dict]:
+) -> tuple[list[str], list[object]]:
     where = []
     params: list[object] = []
     if source_name:
@@ -118,8 +121,43 @@ def list_articles(
     if assignee:
         where.append("assignee = ?")
         params.append(assignee)
+    return where, params
 
-    sql = "SELECT * FROM articles"
+
+def list_articles(
+    conn: sqlite3.Connection,
+    limit: int = 50,
+    source_name: str | None = None,
+    q: str | None = None,
+    min_importance: float | None = None,
+    newsroom_status: str | None = None,
+    source_category: str | None = None,
+    assignee: str | None = None,
+) -> list[dict]:
+    where, params = _article_filters(
+        source_name=source_name,
+        q=q,
+        min_importance=min_importance,
+        newsroom_status=newsroom_status,
+        source_category=source_category,
+        assignee=assignee,
+    )
+
+    sql = """
+        SELECT
+            articles.*,
+            (
+                SELECT COUNT(DISTINCT peer.source_name)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_source_count,
+            (
+                SELECT COUNT(1)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_article_count
+        FROM articles
+    """
     if where:
         sql += " WHERE " + " AND ".join(where)
     sql += " ORDER BY importance_score DESC, collected_at DESC LIMIT ?"
@@ -128,11 +166,46 @@ def list_articles(
     return [dict(row) for row in rows]
 
 
+def count_articles(
+    conn: sqlite3.Connection,
+    source_name: str | None = None,
+    q: str | None = None,
+    min_importance: float | None = None,
+    newsroom_status: str | None = None,
+    source_category: str | None = None,
+    assignee: str | None = None,
+) -> int:
+    where, params = _article_filters(
+        source_name=source_name,
+        q=q,
+        min_importance=min_importance,
+        newsroom_status=newsroom_status,
+        source_category=source_category,
+        assignee=assignee,
+    )
+    sql = "SELECT COUNT(1) FROM articles"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    return int(conn.execute(sql, params).fetchone()[0])
+
+
 def list_priority_articles(conn: sqlite3.Connection, limit: int = 50, source_category: str | None = None) -> list[dict]:
     if source_category:
         rows = conn.execute(
             """
-            SELECT * FROM articles
+            SELECT
+                articles.*,
+                (
+                    SELECT COUNT(DISTINCT peer.source_name)
+                    FROM articles peer
+                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
+                ) AS cluster_source_count,
+                (
+                    SELECT COUNT(1)
+                    FROM articles peer
+                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
+                ) AS cluster_article_count
+            FROM articles
             WHERE importance_score > 0 AND source_category = ?
             ORDER BY importance_score DESC, collected_at DESC
             LIMIT ?
@@ -142,7 +215,19 @@ def list_priority_articles(conn: sqlite3.Connection, limit: int = 50, source_cat
     else:
         rows = conn.execute(
             """
-            SELECT * FROM articles
+            SELECT
+                articles.*,
+                (
+                    SELECT COUNT(DISTINCT peer.source_name)
+                    FROM articles peer
+                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
+                ) AS cluster_source_count,
+                (
+                    SELECT COUNT(1)
+                    FROM articles peer
+                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
+                ) AS cluster_article_count
+            FROM articles
             WHERE importance_score > 0
             ORDER BY importance_score DESC, collected_at DESC
             LIMIT ?
@@ -165,7 +250,19 @@ def list_alert_articles(
     params.append(limit)
     rows = conn.execute(
         f"""
-        SELECT * FROM articles
+        SELECT
+            articles.*,
+            (
+                SELECT COUNT(DISTINCT peer.source_name)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_source_count,
+            (
+                SELECT COUNT(1)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_article_count
+        FROM articles
         WHERE (importance_score >= ?
            OR verification_status = 'needs_review')
         {category_sql}
@@ -220,6 +317,12 @@ def acknowledge_alert_event(conn: sqlite3.Connection, alert_id: int) -> dict | N
     return dict(row) if row else None
 
 
+def acknowledge_all_alert_events(conn: sqlite3.Connection) -> int:
+    count = conn.execute("UPDATE alert_events SET acknowledged = 1 WHERE acknowledged = 0").rowcount
+    conn.commit()
+    return count
+
+
 def list_issue_clusters(conn: sqlite3.Connection, limit: int = 50) -> list[dict]:
     rows = conn.execute(
         """
@@ -246,7 +349,18 @@ def list_issue_clusters(conn: sqlite3.Connection, limit: int = 50) -> list[dict]
 def list_cluster_articles(conn: sqlite3.Connection, duplicate_group_id: str, limit: int = 50) -> list[dict]:
     rows = conn.execute(
         """
-        SELECT *
+        SELECT
+            articles.*,
+            (
+                SELECT COUNT(DISTINCT peer.source_name)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_source_count,
+            (
+                SELECT COUNT(1)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_article_count
         FROM articles
         WHERE duplicate_group_id = ?
         ORDER BY importance_score DESC, collected_at DESC
@@ -264,6 +378,27 @@ def get_article(conn: sqlite3.Connection, article_id: int) -> dict | None:
 
 def update_article_snapshot_path(conn: sqlite3.Connection, article_id: int, raw_html_path: str) -> None:
     conn.execute("UPDATE articles SET raw_html_path = ? WHERE id = ?", (raw_html_path, article_id))
+
+
+def update_article_quality(
+    conn: sqlite3.Connection,
+    article_id: int,
+    region_tags: str,
+    quality_score: float,
+    quality_flags: str,
+    verification_checklist: str,
+) -> None:
+    conn.execute(
+        """
+        UPDATE articles
+        SET region_tags = ?,
+            quality_score = ?,
+            quality_flags = ?,
+            verification_checklist = COALESCE(verification_checklist, ?)
+        WHERE id = ?
+        """,
+        (region_tags, quality_score, quality_flags, verification_checklist, article_id),
+    )
 
 
 def update_article_score(
@@ -378,6 +513,22 @@ def update_article_workflow(
     return get_article(conn, article_id)
 
 
+def update_article_checklist(conn: sqlite3.Connection, article_id: int, checklist: str) -> dict | None:
+    if get_article(conn, article_id) is None:
+        return None
+    conn.execute(
+        """
+        UPDATE articles
+        SET verification_checklist = ?,
+            status_updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (checklist, article_id),
+    )
+    conn.commit()
+    return get_article(conn, article_id)
+
+
 def save_ai_assist(
     conn: sqlite3.Connection,
     article_id: int,
@@ -433,6 +584,40 @@ def list_crawl_runs(conn: sqlite3.Connection, limit: int = 50) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def search_crawl_runs(conn: sqlite3.Connection, q: str | None = None, status: str | None = None, limit: int = 50) -> list[dict]:
+    where = []
+    params: list[object] = []
+    if q:
+        where.append("(source_name LIKE ? OR error_message LIKE ?)")
+        like = f"%{q}%"
+        params.extend([like, like])
+    if status:
+        where.append("status = ?")
+        params.append(status)
+    sql = "SELECT * FROM crawl_runs"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY started_at DESC LIMIT ?"
+    params.append(limit)
+    return [dict(row) for row in conn.execute(sql, params).fetchall()]
+
+
+def set_app_state(conn: sqlite3.Connection, key: str, value: str) -> None:
+    conn.execute(
+        """
+        INSERT INTO app_state (key, value, updated_at)
+        VALUES (?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        """,
+        (key, value),
+    )
+
+
+def get_app_state(conn: sqlite3.Connection, key: str) -> dict | None:
+    row = conn.execute("SELECT * FROM app_state WHERE key = ?", (key,)).fetchone()
+    return dict(row) if row else None
+
+
 def scheduler_status(conn: sqlite3.Connection) -> dict:
     row = conn.execute(
         """
@@ -455,6 +640,7 @@ def scheduler_status(conn: sqlite3.Connection) -> dict:
         "last_run": dict(row) if row else None,
         "running_count": running_count,
         "failed_24h": failed_recent,
+        "heartbeat": get_app_state(conn, "auto_crawl_heartbeat"),
     }
 
 
