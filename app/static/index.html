@@ -143,6 +143,40 @@
         font-size: 12px;
       }
 
+      .presetbar select,
+      .presetbar input {
+        width: auto;
+        height: 28px;
+        font-size: 12px;
+      }
+
+      .presetbar input[type="date"] {
+        min-width: 132px;
+      }
+
+      .sourcebar {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .sourcebar button {
+        height: 28px;
+        padding: 0 9px;
+        border-color: rgba(51, 103, 59, 0.18);
+        background: var(--green-soft);
+        color: var(--green);
+        font-size: 12px;
+      }
+
+      .sourcebar button.active {
+        border-color: var(--green);
+        background: var(--green);
+        color: #fffefa;
+      }
+
       input,
       select,
       textarea,
@@ -367,6 +401,13 @@
         text-overflow: ellipsis;
       }
 
+      mark {
+        border-radius: 3px;
+        background: #fde8de;
+        color: var(--ink);
+        padding: 0 2px;
+      }
+
       .meta,
       .tags,
       .actions,
@@ -582,6 +623,29 @@
         min-width: 0;
       }
 
+      .quality-row.warning {
+        color: #8f331c;
+      }
+
+      body[data-density="compact"] article {
+        gap: 4px;
+        padding: 9px 11px;
+      }
+
+      body[data-density="compact"] article h3 {
+        font-size: 15px;
+      }
+
+      body[data-density="compact"] .article-body,
+      body[data-density="compact"] .workflow,
+      body[data-density="compact"] .actions {
+        display: none;
+      }
+
+      body[data-density="detail"] article {
+        gap: 8px;
+      }
+
       .compare-table {
         width: 100%;
         border-collapse: collapse;
@@ -690,6 +754,9 @@
           <option value="1">24시간</option>
           <option value="3">3일</option>
           <option value="7">7일</option>
+          <option value="today">오늘</option>
+          <option value="yesterday">어제</option>
+          <option value="custom">직접</option>
           <option value="">전체</option>
         </select>
         <select id="mode">
@@ -719,7 +786,21 @@
         <button data-query="실종">실종</button>
         <button data-query="기상특보">기상특보</button>
         <button data-query="감염병">감염병</button>
+        <select id="sort">
+          <option value="importance">중요도순</option>
+          <option value="latest">최신순</option>
+          <option value="source">출처순</option>
+          <option value="ready">방송후보순</option>
+        </select>
+        <select id="density">
+          <option value="normal">보통 보기</option>
+          <option value="compact">간단히</option>
+          <option value="detail">자세히</option>
+        </select>
+        <input id="dateFrom" type="date" hidden />
+        <input id="dateTo" type="date" hidden />
       </div>
+      <div class="sourcebar" id="sourcebar"></div>
     </header>
     <main>
       <aside class="stack">
@@ -807,11 +888,15 @@
       const liveStatusEl = document.querySelector("#liveStatus");
       const categoryButtons = Array.from(document.querySelectorAll("#quickbar button"));
       const readKey = "newsroom-read-article-ids";
+      const densityKey = "newsroom-card-density";
       let activeCategory = "";
       let toastTimer = undefined;
       let lastArticleCount = undefined;
       let lastUrgentIds = new Set();
       let selectedArticleId = undefined;
+
+      document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
+      document.querySelector("#density").value = document.body.dataset.density;
 
       function showToast(message) {
         let toast = document.querySelector(".toast");
@@ -841,6 +926,23 @@
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#039;");
+      }
+
+      function escapeRegExp(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function highlightSearch(value) {
+        const escaped = escapeHtml(value);
+        const q = document.querySelector("#q").value.trim();
+        if (!q) return escaped;
+        const terms = q
+          .split(/\s+/)
+          .map((term) => term.trim())
+          .filter((term) => term.length > 1)
+          .slice(0, 5);
+        if (!terms.length) return escaped;
+        return escaped.replace(new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "gi"), "<mark>$1</mark>");
       }
 
       function parseJsonList(value) {
@@ -889,6 +991,33 @@
         return `${size} B`;
       }
 
+      function formatDateTimeParam(date, endOfDay = false) {
+        if (!date) return "";
+        return `${date} ${endOfDay ? "23:59:59" : "00:00:00"}`;
+      }
+
+      function addDateFilters(params) {
+        const period = document.querySelector("#period").value;
+        document.querySelector("#dateFrom").hidden = period !== "custom";
+        document.querySelector("#dateTo").hidden = period !== "custom";
+        if (period === "today" || period === "yesterday") {
+          const date = new Date();
+          if (period === "yesterday") date.setDate(date.getDate() - 1);
+          const value = date.toLocaleDateString("sv-SE");
+          params.set("collected_from", formatDateTimeParam(value));
+          params.set("collected_to", formatDateTimeParam(value, true));
+          return;
+        }
+        if (period === "custom") {
+          const from = document.querySelector("#dateFrom").value;
+          const to = document.querySelector("#dateTo").value;
+          if (from) params.set("collected_from", formatDateTimeParam(from));
+          if (to) params.set("collected_to", formatDateTimeParam(to, true));
+          return;
+        }
+        if (period) params.set("collected_within_days", period);
+      }
+
       function playUrgentTone() {
         try {
           const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -929,8 +1058,8 @@
         const display = articleDisplayParts(item);
         return `
           <article data-id="${item.id}" data-priority="${priority}" class="${read ? "read" : ""} ${String(item.id) === String(selectedArticleId) ? "selected" : ""}">
-            <h3><span class="article-label">[제목]</span> <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(display.title)}</a></h3>
-            ${display.body ? `<div class="article-body"><span class="article-label">[기사내용]</span> ${escapeHtml(display.body)}</div>` : ""}
+            <h3><span class="article-label">[제목]</span> <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${highlightSearch(display.title)}</a></h3>
+            ${display.body ? `<div class="article-body"><span class="article-label">[기사내용]</span> ${highlightSearch(display.body)}</div>` : ""}
             <div class="meta">
               ${read ? "" : '<span class="status-pill new">NEW</span>'}
               <span>${escapeHtml(item.source_name)}</span>
@@ -1020,7 +1149,7 @@
         const mode = document.querySelector("#mode").value;
         const source = sourceEl.value;
         const status = document.querySelector("#status").value;
-        const period = document.querySelector("#period").value;
+        const sort = document.querySelector("#sort").value;
         const params = new URLSearchParams({ limit: "50" });
         if (mode === "admin") {
           await loadAdmin();
@@ -1034,7 +1163,8 @@
         if (source) params.set("source_name", source);
         if (status) params.set("newsroom_status", status);
         if (activeCategory) params.set("source_category", activeCategory);
-        if (period) params.set("collected_within_days", period);
+        if (sort) params.set("sort", sort);
+        addDateFilters(params);
         const url =
           mode === "priority"
             ? `/priority?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
@@ -1077,8 +1207,7 @@
           statuses.map(async ([value, label]) => {
             const params = new URLSearchParams({ limit: "20", newsroom_status: value });
             if (activeCategory) params.set("source_category", activeCategory);
-            const period = document.querySelector("#period").value;
-            if (period) params.set("collected_within_days", period);
+            addDateFilters(params);
             const items = await fetchJson(`/articles?${params.toString()}`);
             return { value, label, items };
           }),
@@ -1113,6 +1242,7 @@
         const sources = await fetchJson("/sources");
         const validation = await fetchJson("/admin/validate");
         const backups = await fetchJson("/maintenance/backups");
+        const keywordGroups = await fetchJson("/admin/keywords");
         articlesEl.innerHTML = `
           <article>
             <h3>설정 상태</h3>
@@ -1130,7 +1260,8 @@
                         <button data-source-id="${source.id}" data-source-enabled="${source.enabled ? 0 : 1}">
                           ${source.enabled ? "비활성화" : "활성화"}
                         </button>
-                        ${source.crawl_interval_seconds}s
+                        <input data-source-interval="${source.id}" type="number" min="60" step="60" value="${source.crawl_interval_seconds}" />
+                        <button data-source-save="${source.id}">주기 저장</button>
                       </span>
                     </div>
                   `,
@@ -1139,9 +1270,34 @@
             </div>
           </article>
           <article>
+            <h3>키워드 룰</h3>
+            <div class="stack">
+              ${Object.entries(keywordGroups)
+                .map(
+                  ([group, keywords]) => `
+                    <label class="summary">
+                      <strong>${escapeHtml(group)}</strong><br />
+                      <textarea data-keyword-group="${escapeHtml(group)}">${escapeHtml(keywords.join(", "))}</textarea>
+                    </label>
+                  `,
+                )
+                .join("")}
+              <button data-action="save-keywords">키워드 저장</button>
+            </div>
+          </article>
+          <article>
             <h3>백업 목록</h3>
             <div class="stack">
-              ${backups.map((backup) => `<div class="summary">${escapeHtml(backup.name)} · ${backup.size} bytes</div>`).join("") || "백업 없음"}
+              ${backups
+                .map(
+                  (backup) => `
+                    <div class="stat">
+                      <span>${escapeHtml(backup.name)} · ${formatBytes(backup.size)}</span>
+                      <button data-backup-restore="${escapeHtml(backup.name)}">복구</button>
+                    </div>
+                  `,
+                )
+                .join("") || "백업 없음"}
             </div>
           </article>
         `;
@@ -1289,17 +1445,19 @@
 
       async function loadSourceQuality() {
         const quality = await fetchJson("/sources/quality");
-        const warnings = quality.filter((source) => source.enabled && source.last_status === "failed");
+        const warnings = quality.filter(
+          (source) => source.enabled && (source.last_status === "failed" || Number(source.zero_new_streak || 0) >= 3),
+        );
         sourceWarningsEl.innerHTML = warnings.length
           ? warnings
               .slice(0, 6)
               .map(
                 (source) => `
-                  <div class="stat danger">
+                  <div class="stat ${source.last_status === "failed" ? "danger" : "warning"}">
                     <span>${escapeHtml(source.name)}</span>
-                    <strong>점검</strong>
+                    <strong>${source.last_status === "failed" ? "실패" : "0건 반복"}</strong>
                   </div>
-                  <div class="summary">${escapeHtml(source.last_error_message || "최근 수집 실패")}</div>
+                  <div class="summary">${escapeHtml(source.last_error_message || `최근 성공 수집 ${source.zero_new_streak}회가 모두 0건입니다.`)}</div>
                 `,
               )
               .join("")
@@ -1308,13 +1466,18 @@
           .slice(0, 10)
           .map((source) => {
             const rate = source.success_rate === null ? "-" : `${source.success_rate}%`;
-            const rowClass = source.last_status === "failed" ? "quality-row failed" : "quality-row";
+            const rowClass =
+              source.last_status === "failed"
+                ? "quality-row failed"
+                : Number(source.zero_new_streak || 0) >= 3
+                  ? "quality-row warning"
+                  : "quality-row";
             return `
               <div class="${rowClass}">
                 <strong>${escapeHtml(source.name)}</strong>
                 <span>${rate}</span>
                 <span>${escapeHtml(categoryLabel(source.source_category))} · 기사 ${source.article_count}</span>
-                <span>${escapeHtml(source.last_status || "대기")}</span>
+                <span>${escapeHtml(source.last_status || "대기")} · 0건 ${Number(source.zero_new_streak || 0)}회</span>
               </div>
             `;
           })
@@ -1333,7 +1496,8 @@
             (run) => `
               <div class="run ${run.status === "failed" ? "failed" : ""}">
                 <strong>${escapeHtml(run.source_name)}</strong><br />
-                ${escapeHtml(run.status)} · ${run.new_article_count} · ${escapeHtml(run.started_at)}
+                ${escapeHtml(run.status)} · 신규 ${run.new_article_count}건 · ${escapeHtml(run.started_at)}
+                ${run.error_message ? `<br /><span>${escapeHtml(run.error_message)}</span>` : ""}
               </div>
             `,
           )
@@ -1347,6 +1511,19 @@
           sources
             .filter((source) => source.enabled)
             .map((source) => `<option value="${escapeHtml(source.name)}">${escapeHtml(source.name)}</option>`)
+            .join("");
+        const pinned = ["KBS", "SBS", "MBC", "YTN", "JTBC", "경찰", "소방", "기상", "정부"];
+        document.querySelector("#sourcebar").innerHTML =
+          '<button data-source-name="" class="active">전체 출처</button>' +
+          pinned
+            .map((label) => {
+              const source = sources.find(
+                (item) =>
+                  item.enabled &&
+                  (item.name.toLowerCase().includes(label.toLowerCase()) || categoryLabel(item.source_category) === label),
+              );
+              return source ? `<button data-source-name="${escapeHtml(source.name)}">${escapeHtml(label)}</button>` : "";
+            })
             .join("");
         return sources;
       }
@@ -1446,6 +1623,19 @@
       document.querySelector("#period").addEventListener("change", () => {
         loadArticles().catch((error) => showToast(error.message));
       });
+      document.querySelector("#dateFrom").addEventListener("change", () => {
+        loadArticles().catch((error) => showToast(error.message));
+      });
+      document.querySelector("#dateTo").addEventListener("change", () => {
+        loadArticles().catch((error) => showToast(error.message));
+      });
+      document.querySelector("#sort").addEventListener("change", () => {
+        loadArticles().catch((error) => showToast(error.message));
+      });
+      document.querySelector("#density").addEventListener("change", (event) => {
+        document.body.dataset.density = event.target.value;
+        localStorage.setItem(densityKey, event.target.value);
+      });
       document.querySelector("#runSearch").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadRuns();
       });
@@ -1465,18 +1655,23 @@
         event.target.classList.add("active");
         refreshDashboard().catch((error) => showToast(error.message));
       });
+      document.querySelector("#sourcebar").addEventListener("click", (event) => {
+        if (event.target.dataset.sourceName === undefined) return;
+        sourceEl.value = event.target.dataset.sourceName;
+        document.querySelectorAll("#sourcebar button").forEach((button) => button.classList.remove("active"));
+        event.target.classList.add("active");
+        loadArticles().catch((error) => showToast(error.message));
+      });
       document.querySelector("#exportCsv").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "1000" });
         if (activeCategory) params.set("source_category", activeCategory);
-        const period = document.querySelector("#period").value;
-        if (period) params.set("collected_within_days", period);
+        addDateFilters(params);
         window.open(`/exports/articles.csv?${params.toString()}`, "_blank");
       });
       document.querySelector("#exportCue").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "100", newsroom_status: "ready" });
         if (activeCategory) params.set("source_category", activeCategory);
-        const period = document.querySelector("#period").value;
-        if (period) params.set("collected_within_days", period);
+        addDateFilters(params);
         window.open(`/exports/cuesheet.txt?${params.toString()}`, "_blank");
       });
       document.querySelector("#backupDb").addEventListener("click", async () => {
@@ -1525,6 +1720,32 @@
           }).then(loadAdmin).catch((error) => showToast(error.message));
           return;
         }
+        if (event.target.dataset.sourceSave) {
+          const id = event.target.dataset.sourceSave;
+          const interval = Number(articlesEl.querySelector(`[data-source-interval="${CSS.escape(id)}"]`)?.value || 300);
+          fetchJson(`/sources/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ crawl_interval_seconds: interval }),
+          })
+            .then(() => {
+              showToast("출처 수집 주기를 저장했습니다.");
+              return loadAdmin();
+            })
+            .catch((error) => showToast(error.message));
+          return;
+        }
+        if (event.target.dataset.backupRestore) {
+          const name = event.target.dataset.backupRestore;
+          if (!confirm(`${name} 백업으로 복구할까요? 현재 DB는 안전 백업 후 교체됩니다.`)) return;
+          fetchJson(`/maintenance/restore/${encodeURIComponent(name)}`, { method: "POST" })
+            .then(() => {
+              showToast("백업 복구가 완료됐습니다. 서버 재시작 후 확인하세요.");
+              return loadAdmin();
+            })
+            .catch((error) => showToast(error.message));
+          return;
+        }
         const boardCard = event.target.closest(".board-card");
         if (boardCard) {
           showDetail(boardCard.dataset.id).catch((error) => showToast(error.message));
@@ -1538,6 +1759,23 @@
           return;
         }
         if (!action || !article) return;
+        if (action === "save-keywords") {
+          const groups = {};
+          articlesEl.querySelectorAll("[data-keyword-group]").forEach((field) => {
+            groups[field.dataset.keywordGroup] = field.value
+              .split(",")
+              .map((keyword) => keyword.trim())
+              .filter(Boolean);
+          });
+          fetchJson("/admin/keywords", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ groups }),
+          })
+            .then(() => showToast("키워드 룰을 저장했습니다. 다음 수집/재계산부터 반영됩니다."))
+            .catch((error) => showToast(error.message));
+          return;
+        }
         if (action === "save") saveWorkflow(article);
         if (action === "assist") buildAssist(article);
         if (action === "enrich") enrichArticle(article);

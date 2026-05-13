@@ -9,6 +9,7 @@ class Settings:
         self.raw_html_dir = Path(os.getenv("NEWSROOM_RAW_HTML_DIR", "data/raw_html"))
         self.log_dir = Path(os.getenv("NEWSROOM_LOG_DIR", "logs"))
         self.backup_dir = Path(os.getenv("NEWSROOM_BACKUP_DIR", "backups"))
+        self.keyword_config_path = Path(os.getenv("NEWSROOM_KEYWORD_CONFIG_PATH", "config/keywords.json"))
         self.archive_dir = Path(os.getenv("NEWSROOM_ARCHIVE_DIR", "data/archive"))
         self.request_timeout_seconds = float(os.getenv("NEWSROOM_REQUEST_TIMEOUT_SECONDS", "15"))
         self.sqlite_busy_timeout_ms = int(os.getenv("NEWSROOM_SQLITE_BUSY_TIMEOUT_MS", "10000"))

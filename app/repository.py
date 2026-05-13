@@ -101,6 +101,8 @@ def _article_filters(
     source_category: str | None = None,
     assignee: str | None = None,
     collected_within_days: int | None = None,
+    collected_from: str | None = None,
+    collected_to: str | None = None,
 ) -> tuple[list[str], list[object]]:
     where = []
     params: list[object] = []
@@ -127,7 +129,22 @@ def _article_filters(
         cutoff = datetime.now() - timedelta(days=collected_within_days)
         where.append("collected_at >= ?")
         params.append(cutoff.strftime("%Y-%m-%d %H:%M:%S"))
+    if collected_from:
+        where.append("collected_at >= ?")
+        params.append(collected_from)
+    if collected_to:
+        where.append("collected_at <= ?")
+        params.append(collected_to)
     return where, params
+
+
+def _article_order(sort: str | None) -> str:
+    return {
+        "latest": "collected_at DESC, importance_score DESC",
+        "importance": "importance_score DESC, collected_at DESC",
+        "source": "source_name ASC, collected_at DESC",
+        "ready": "CASE WHEN newsroom_status = 'ready' THEN 0 ELSE 1 END, importance_score DESC, collected_at DESC",
+    }.get(sort or "importance", "importance_score DESC, collected_at DESC")
 
 
 def list_articles(
@@ -140,6 +157,9 @@ def list_articles(
     source_category: str | None = None,
     assignee: str | None = None,
     collected_within_days: int | None = None,
+    collected_from: str | None = None,
+    collected_to: str | None = None,
+    sort: str | None = None,
 ) -> list[dict]:
     where, params = _article_filters(
         source_name=source_name,
@@ -149,6 +169,8 @@ def list_articles(
         source_category=source_category,
         assignee=assignee,
         collected_within_days=collected_within_days,
+        collected_from=collected_from,
+        collected_to=collected_to,
     )
 
     sql = """
@@ -168,7 +190,7 @@ def list_articles(
     """
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY importance_score DESC, collected_at DESC LIMIT ?"
+    sql += f" ORDER BY {_article_order(sort)} LIMIT ?"
     params.append(limit)
     rows = conn.execute(sql, params).fetchall()
     return [dict(row) for row in rows]
@@ -183,6 +205,8 @@ def count_articles(
     source_category: str | None = None,
     assignee: str | None = None,
     collected_within_days: int | None = None,
+    collected_from: str | None = None,
+    collected_to: str | None = None,
 ) -> int:
     where, params = _article_filters(
         source_name=source_name,
@@ -192,6 +216,8 @@ def count_articles(
         source_category=source_category,
         assignee=assignee,
         collected_within_days=collected_within_days,
+        collected_from=collected_from,
+        collected_to=collected_to,
     )
     sql = "SELECT COUNT(1) FROM articles"
     if where:
@@ -713,7 +739,22 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
                 WHERE cr.source_name = s.name
                 ORDER BY cr.started_at DESC
                 LIMIT 1
-            ) AS last_new_article_count
+            ) AS last_new_article_count,
+            (
+                SELECT COUNT(1)
+                FROM crawl_runs cr
+                WHERE cr.source_name = s.name
+                  AND cr.status = 'success'
+                  AND cr.new_article_count = 0
+                  AND cr.id IN (
+                      SELECT recent.id
+                      FROM crawl_runs recent
+                      WHERE recent.source_name = s.name
+                        AND recent.status = 'success'
+                      ORDER BY recent.started_at DESC
+                      LIMIT 3
+                  )
+            ) AS zero_new_streak
         FROM sources s
         ORDER BY s.enabled DESC, s.source_category, s.name
         """

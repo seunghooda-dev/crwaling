@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.database import db_session, init_db
 from app.config import settings
+from app.keyword_loader import load_keyword_groups
 from app.repository import (
     get_article,
     acknowledge_all_alert_events,
@@ -83,6 +84,10 @@ class ChecklistUpdate(BaseModel):
     verification_checklist: dict[str, bool]
 
 
+class KeywordGroupsUpdate(BaseModel):
+    groups: dict[str, list[str]]
+
+
 @app.on_event("startup")
 def startup() -> None:
     init_db()
@@ -136,6 +141,25 @@ def validate_settings() -> dict:
     return {"ok": not errors, "errors": errors}
 
 
+@app.get("/admin/keywords")
+def keywords() -> dict[str, list[str]]:
+    return load_keyword_groups(settings.keyword_config_path)
+
+
+@app.put("/admin/keywords")
+def update_keywords(payload: KeywordGroupsUpdate) -> dict[str, list[str]]:
+    import json
+
+    groups = {
+        str(group).strip(): sorted({str(keyword).strip() for keyword in keywords if str(keyword).strip()})
+        for group, keywords in payload.groups.items()
+        if str(group).strip()
+    }
+    settings.keyword_config_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.keyword_config_path.write_text(json.dumps(groups, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return groups
+
+
 @app.get("/stats")
 def stats(conn=Depends(db_session)) -> dict:
     return newsroom_stats(conn)
@@ -156,6 +180,9 @@ def articles(
     source_category: str | None = None,
     assignee: str | None = None,
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
+    collected_from: str | None = None,
+    collected_to: str | None = None,
+    sort: str | None = Query(default="importance", pattern="^(latest|importance|source|ready)$"),
     conn=Depends(db_session),
     ) -> list[dict]:
     return list_articles(
@@ -168,6 +195,9 @@ def articles(
         source_category=source_category,
         assignee=assignee,
         collected_within_days=collected_within_days,
+        collected_from=collected_from,
+        collected_to=collected_to,
+        sort=sort,
     )
 
 
@@ -180,6 +210,8 @@ def articles_count(
     source_category: str | None = None,
     assignee: str | None = None,
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
+    collected_from: str | None = None,
+    collected_to: str | None = None,
     conn=Depends(db_session),
 ) -> dict:
     return {
@@ -192,6 +224,8 @@ def articles_count(
             source_category=source_category,
             assignee=assignee,
             collected_within_days=collected_within_days,
+            collected_from=collected_from,
+            collected_to=collected_to,
         )
     }
 
@@ -336,6 +370,8 @@ def export_articles_csv(
     source_category: str | None = None,
     assignee: str | None = None,
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
+    collected_from: str | None = None,
+    collected_to: str | None = None,
     conn=Depends(db_session),
 ) -> Response:
     articles = list_articles(
@@ -345,6 +381,8 @@ def export_articles_csv(
         source_category=source_category,
         assignee=assignee,
         collected_within_days=collected_within_days,
+        collected_from=collected_from,
+        collected_to=collected_to,
     )
     return Response(
         content=articles_to_csv(articles),
@@ -360,6 +398,8 @@ def export_cuesheet(
     source_category: str | None = None,
     assignee: str | None = None,
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
+    collected_from: str | None = None,
+    collected_to: str | None = None,
     conn=Depends(db_session),
 ) -> PlainTextResponse:
     articles = list_articles(
@@ -369,6 +409,8 @@ def export_cuesheet(
         source_category=source_category,
         assignee=assignee,
         collected_within_days=collected_within_days,
+        collected_from=collected_from,
+        collected_to=collected_to,
     )
     return PlainTextResponse(
         content=articles_to_cuesheet(articles),
