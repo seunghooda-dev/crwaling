@@ -9,6 +9,15 @@ from app.models import Article, Source
 from app.text import article_fingerprint, canonicalize_url, normalize_space
 
 
+KBS_SUMMARY_MARKERS = (
+    "KBSLIFE",
+    "[안전토크]",
+    "이와 관련",
+    "고령 운전자의",
+    "일본 지진의",
+)
+
+
 class HtmlCrawler(Crawler):
     """Generic fallback crawler for simple list pages.
 
@@ -26,7 +35,8 @@ class HtmlCrawler(Crawler):
         soup = BeautifulSoup(response.text, "html.parser")
         articles: list[Article] = []
         for anchor in soup.select(self._selector_for(source)):
-            title = normalize_space(anchor.get_text(" "))
+            raw_title = normalize_space(anchor.get_text(" "))
+            title, summary = self._split_title_summary(source, raw_title)
             href = anchor.get("href")
             if not self._is_candidate(source, title, href):
                 continue
@@ -42,6 +52,7 @@ class HtmlCrawler(Crawler):
                     canonical_url=canonical_url,
                     fingerprint=article_fingerprint(title, source.name),
                     duplicate_group_id=article_fingerprint(title, "global")[:16],
+                    summary=summary,
                 )
             )
         return articles[:100]
@@ -68,6 +79,36 @@ class HtmlCrawler(Crawler):
         if source.source_category in {"fire", "police", "disaster"}:
             return any(token in href for token in ("view", "bbs", "nttId", "cntId", "detail", ".do", ".jsp"))
         return True
+
+    def _split_title_summary(self, source: Source, text: str) -> tuple[str, str | None]:
+        if "d.kbs.co.kr" not in source.url:
+            return text, None
+
+        cleaned = text
+        published = None
+        if len(cleaned) > 18 and cleaned[-1] == ")" and "." in cleaned[-20:]:
+            maybe_date = cleaned[-18:].strip()
+            if len(maybe_date) == 18 and maybe_date[4] == "." and maybe_date[7] == ".":
+                published = maybe_date
+                cleaned = normalize_space(cleaned[:-18])
+
+        split_at = -1
+        for marker in KBS_SUMMARY_MARKERS:
+            index = cleaned.find(marker)
+            if index > 18 and (split_at == -1 or index < split_at):
+                split_at = index
+
+        if split_at == -1 and len(cleaned) > 90:
+            split_at = cleaned.rfind(" ", 0, 90)
+
+        if split_at == -1:
+            return text, None
+
+        title = normalize_space(cleaned[:split_at])
+        summary = normalize_space(cleaned[split_at:])
+        if published:
+            summary = normalize_space(f"{summary} {published}")
+        return title, summary or None
 
     def _get_with_retry(self, url: str, headers: dict[str, str], source: Source) -> httpx.Response:
         last_error: Exception | None = None

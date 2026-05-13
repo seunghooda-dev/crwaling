@@ -320,6 +320,19 @@
         text-decoration: underline;
       }
 
+      .article-label {
+        color: var(--accent-ink);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .article-body {
+        color: #3f4b58;
+        font-size: 13px;
+        line-height: 1.42;
+        overflow-wrap: anywhere;
+      }
+
       .meta,
       .tags,
       .actions,
@@ -831,9 +844,11 @@
           ? `<div class="assist">${escapeHtml(item.ai_summary)}\n\n${escapeHtml(item.check_points || "")}</div>`
           : "";
         const sourceDistance = sourceDistanceText(item);
+        const display = articleDisplayParts(item);
         return `
           <article data-id="${item.id}" data-priority="${priority}" class="${read ? "read" : ""} ${String(item.id) === String(selectedArticleId) ? "selected" : ""}">
-            <h3><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.title)}</a></h3>
+            <h3><span class="article-label">[제목]</span> <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(display.title)}</a></h3>
+            ${display.body ? `<div class="article-body"><span class="article-label">[기사내용]</span> ${escapeHtml(display.body)}</div>` : ""}
             <div class="meta">
               ${read ? "" : '<span class="status-pill new">NEW</span>'}
               <span>${escapeHtml(item.source_name)}</span>
@@ -886,6 +901,27 @@
           government: "정부",
           news: "뉴스",
         }[value] || value || "기타";
+      }
+
+      function articleDisplayParts(item) {
+        const title = String(item.title || "");
+        if (item.summary) {
+          return { title, body: item.summary };
+        }
+        if (item.source_name !== "KBS Disaster Portal") {
+          return { title, body: "" };
+        }
+        const cleaned = title.replace(/\s+\d{4}\.\d{2}\.\d{2}\s+\(\d{2}:\d{2}\)\s*$/, "");
+        const markers = [" KBSLIFE", " [안전토크]", " 이와 관련", " 고령 운전자의", " 일본 지진의"];
+        const splitAt = markers
+          .map((marker) => cleaned.indexOf(marker))
+          .filter((index) => index > 18)
+          .sort((a, b) => a - b)[0];
+        if (!splitAt) return { title, body: "" };
+        return {
+          title: cleaned.slice(0, splitAt).trim(),
+          body: cleaned.slice(splitAt).trim(),
+        };
       }
 
       function sourceDistanceText(item) {
