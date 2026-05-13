@@ -585,6 +585,49 @@
         font-size: 13px;
       }
 
+      .verification-brief {
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #f8faf4;
+      }
+
+      .verification-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .verification-actions a,
+      .verification-actions button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fffefa;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .verification-actions a.primary-link {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fffefa;
+      }
+
+      .evidence-list {
+        display: grid;
+        gap: 5px;
+        font-size: 12px;
+      }
+
       @media (max-width: 980px) {
         main {
           grid-template-columns: 1fr;
@@ -714,9 +757,9 @@
       </aside>
       <section class="list" id="articles"></section>
       <aside class="panel detail-panel">
-        <h2>상세</h2>
+        <h2>방송 검증</h2>
         <div class="side-body" id="detailPanel">
-          <div class="empty">기사를 선택하면 상세 정보가 표시됩니다.</div>
+          <div class="empty">기사를 선택하면 원문 확인, 타사 확인, 관계기관 확인 체크리스트가 표시됩니다.</div>
         </div>
       </aside>
     </main>
@@ -1114,6 +1157,9 @@
         const videos = parseJsonList(item.video_urls).slice(0, 4);
         const regions = parseJsonList(item.region_tags);
         const qualityFlags = parseJsonList(item.quality_flags);
+        const keywords = parseJsonList(item.keywords);
+        const articleText = item.body_text || item.summary || "카드 요약만 제공된 기사입니다. 원문 확인이 필요합니다.";
+        const sourceDistance = sourceDistanceText(item);
         const checklist = {
           source_checked: false,
           cross_checked: false,
@@ -1125,14 +1171,22 @@
         detailPanelEl.innerHTML = `
           <div class="stack">
             <strong>${escapeHtml(item.title)}</strong>
-            <div class="meta">${escapeHtml(item.source_name)} · score ${Number(item.importance_score || 0).toFixed(1)}</div>
+            <div class="meta">${escapeHtml(item.source_name)} · ${escapeHtml(categoryLabel(item.source_category))} · score ${Number(item.importance_score || 0).toFixed(1)}</div>
             <div class="tags">
               ${regions.map((region) => `<span class="tag">${escapeHtml(region)}</span>`).join("")}
               <span class="tag">품질 ${Number(item.quality_score || 0).toFixed(0)}</span>
               ${qualityFlags.map((flag) => `<span class="tag">${escapeHtml(flag)}</span>`).join("")}
             </div>
-            <div class="summary">${escapeHtml(item.body_text || item.summary || "상세 본문이 아직 없습니다.")}</div>
-            <div class="tags">${parseJsonList(item.keywords).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
+            <div class="verification-actions">
+              <a class="primary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">원문 열기</a>
+              <button data-action="panel-assist" data-id="${item.id}">AI 검토</button>
+            </div>
+            <div class="verification-brief">
+              <strong>검증 요약</strong>
+              <span>${escapeHtml(sourceDistance)}</span>
+              <span>${escapeHtml(articleText)}</span>
+            </div>
+            <div class="tags">${keywords.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
             <div class="checklist" data-checklist-id="${item.id}">
               ${checklistItem("source_checked", "원문 확인", checklist)}
               ${checklistItem("cross_checked", "타사 확인", checklist)}
@@ -1141,9 +1195,13 @@
               ${checklistItem("broadcast_ready", "방송 가능", checklist)}
             </div>
             <button data-action="save-checklist" data-id="${item.id}">체크리스트 저장</button>
-            <div class="summary"><strong>이미지</strong><br />${images.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("<br />") || "-"}</div>
-            <div class="summary"><strong>영상</strong><br />${videos.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("<br />") || "-"}</div>
-            <div class="summary"><strong>스냅샷</strong><br />${escapeHtml(item.raw_html_path || "-")}</div>
+            <div class="evidence-list">
+              <strong>증거 자료</strong>
+              <span>이미지 ${images.length}개 · 영상 ${videos.length}개</span>
+              <span>스냅샷 ${escapeHtml(item.raw_html_path || "-")}</span>
+              ${images.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("")}
+              ${videos.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("")}
+            </div>
             <div class="summary"><strong>AI 보조</strong><br />${escapeHtml(item.ai_summary || "AI 보조 버튼으로 생성할 수 있습니다.")}</div>
           </div>
         `;
@@ -1459,6 +1517,13 @@
       });
 
       detailPanelEl.addEventListener("click", async (event) => {
+        if (event.target.dataset.action === "panel-assist") {
+          const id = event.target.dataset.id;
+          await fetchJson(`/articles/${id}/ai-assist`, { method: "POST" });
+          showToast("AI 검토를 생성했습니다.");
+          await showDetail(id);
+          return;
+        }
         if (event.target.dataset.action !== "save-checklist") return;
         const id = event.target.dataset.id;
         const checklist = {};

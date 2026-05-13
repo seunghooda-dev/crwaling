@@ -40,6 +40,36 @@
     "max_retries": 2
   },
   {
+    "name": "MBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://imnews.imbc.com/m_main.html?gnb=top",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "YTN News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.ytn.co.kr/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "JTBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://news.jtbc.co.kr/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
     "name": "Korea Policy Press Releases",
     "source_type": "rss",
     "source_category": "government",

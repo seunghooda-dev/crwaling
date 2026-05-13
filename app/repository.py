@@ -372,7 +372,25 @@ def list_cluster_articles(conn: sqlite3.Connection, duplicate_group_id: str, lim
 
 
 def get_article(conn: sqlite3.Connection, article_id: int) -> dict | None:
-    row = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
+    row = conn.execute(
+        """
+        SELECT
+            articles.*,
+            (
+                SELECT COUNT(DISTINCT peer.source_name)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_source_count,
+            (
+                SELECT COUNT(1)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_article_count
+        FROM articles
+        WHERE id = ?
+        """,
+        (article_id,),
+    ).fetchone()
     return dict(row) if row else None
 
 

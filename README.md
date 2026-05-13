@@ -67,6 +67,7 @@ uvicorn app.main:app --reload
 ## 1차 실제 출처
 
 - SBS 뉴스 최신/이슈 RSS
+- MBC/YTN/JTBC 공개 뉴스 페이지 모니터링
 - 대한민국 정책브리핑 정책뉴스/보도자료/팩트체크/부처 브리핑/영상/사진 RSS
 - KBS World 오늘의 뉴스 RSS
 - 연합뉴스 영문 RSS

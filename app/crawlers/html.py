@@ -66,6 +66,12 @@ class HtmlCrawler(Crawler):
             return "a[href*='bbsId'], a[href*='nttId']"
         if "weather.go.kr" in source.url:
             return "a[href], td a[href]"
+        if "imnews.imbc.com" in source.url:
+            return "a[href*='.html']"
+        if "ytn.co.kr" in source.url:
+            return "a[href*='_ln/'], a[href*='news_view.php'], a[href*='/_ln/']"
+        if "news.jtbc.co.kr" in source.url:
+            return "a[href*='article'], a[href*='news_id=']"
         if "safekorea.go.kr" in source.url or "d.kbs.co.kr" in source.url:
             return "a[href]"
         return "a[href]"
@@ -76,6 +82,12 @@ class HtmlCrawler(Crawler):
         bad_words = ("로그인", "회원가입", "사이트맵", "개인정보", "이메일", "바로가기", "메뉴", "검색")
         if any(word in title for word in bad_words):
             return False
+        if "imnews.imbc.com" in source.url:
+            return ".html" in href and not any(token in href for token in ("/more/", "/pc_main", "/m_main"))
+        if "ytn.co.kr" in source.url:
+            return "_ln/" in href or "news_view.php" in href
+        if "news.jtbc.co.kr" in source.url:
+            return "article" in href or "news_id=" in href
         if source.source_category in {"fire", "police", "disaster"}:
             return any(token in href for token in ("view", "bbs", "nttId", "cntId", "detail", ".do", ".jsp"))
         return True
