@@ -1817,19 +1817,42 @@
       async function refreshDashboard() {
         await Promise.all([
           loadStats(),
-          loadClusters(),
-          loadAlertEvents(),
-          loadRuns(),
           loadSchedulerStatus(),
-          loadUrgentRail(),
-          loadOperations(),
-          loadSourceQuality(),
           loadArticles(),
         ]);
+        scheduleSecondaryRefresh();
       }
 
-      loadSources()
-        .then(refreshDashboard)
+      function deferWork(task, delay = 0) {
+        const run = () => task().catch((error) => showToast(error.message));
+        if ("requestIdleCallback" in window) {
+          window.requestIdleCallback(run, { timeout: 2500 + delay });
+          return;
+        }
+        setTimeout(run, delay);
+      }
+
+      function scheduleSecondaryRefresh() {
+        const tasks = [
+          loadUrgentRail,
+          loadRuns,
+          loadAlertEvents,
+          loadClusters,
+          loadOperations,
+          loadSourceQuality,
+        ];
+        tasks.forEach((task, index) => deferWork(task, 120 * index));
+      }
+
+      async function bootDashboard() {
+        liveStatusEl.textContent = "초기 화면 로딩 중";
+        await loadSources();
+        await Promise.all([loadArticles(), loadStats(), loadSchedulerStatus()]);
+        liveStatusEl.textContent = `초기 화면 준비 완료 · ${new Date().toLocaleTimeString("ko-KR")}`;
+        scheduleSecondaryRefresh();
+      }
+
+      bootDashboard()
         .catch((error) => showToast(error.message));
 
       setInterval(() => {
