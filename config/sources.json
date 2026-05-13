@@ -40,6 +40,16 @@
     "max_retries": 2
   },
   {
+    "name": "KBS News Korean Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://news.kbs.co.kr/news/pc/main/main.html",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
     "name": "MBC News Monitor",
     "source_type": "html",
     "source_category": "news",
@@ -61,12 +71,142 @@
   },
   {
     "name": "JTBC News Monitor",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://fs.jtbc.joins.com/RSS/newsflash.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "TV Chosun News Monitor",
     "source_type": "html",
     "source_category": "news",
-    "url": "https://news.jtbc.co.kr/",
+    "url": "https://news.tvchosun.com/",
     "enabled": true,
     "crawl_interval_seconds": 300,
     "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "Channel A News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.ichannela.com/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "MBN News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.mbn.co.kr/news/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "Yonhap News TV Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.yonhapnewstv.co.kr/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "NoCut News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.nocutnews.co.kr/news/list",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "Chosun Ilbo RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Donga Ilbo RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://rss.donga.com/total.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Kyunghyang Shinmun RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.khan.co.kr/rss/rssdata/total_news.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Hankyoreh RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.hani.co.kr/rss/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Hankyung RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.hankyung.com/feed/all-news",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Maeil Business RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.mk.co.kr/rss/30000001/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Segye Ilbo RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.segye.com/Articles/RSSList/segye_recent.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "OhmyNews RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://rss.ohmynews.com/rss/top.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
     "max_retries": 2
   },
   {

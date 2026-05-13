@@ -1,4 +1,5 @@
 from time import sleep
+import re
 
 import httpx
 from bs4 import BeautifulSoup
@@ -66,12 +67,24 @@ class HtmlCrawler(Crawler):
             return "a[href*='bbsId'], a[href*='nttId']"
         if "weather.go.kr" in source.url:
             return "a[href], td a[href]"
+        if "news.kbs.co.kr" in source.url:
+            return "a[href*='view.do?ncd=']"
         if "imnews.imbc.com" in source.url:
             return "a[href*='.html']"
         if "ytn.co.kr" in source.url:
             return "a[href*='_ln/'], a[href*='news_view.php'], a[href*='/_ln/']"
         if "news.jtbc.co.kr" in source.url:
             return "a[href*='article'], a[href*='news_id=']"
+        if "news.tvchosun.com" in source.url:
+            return "a[href*='/site/data/html_dir/']"
+        if "ichannela.com" in source.url:
+            return "a[href*='/news/detail/']"
+        if "mbn.co.kr" in source.url:
+            return "a[href*='/news/']"
+        if "yonhapnewstv.co.kr" in source.url:
+            return "a[href*='/news/']"
+        if "nocutnews.co.kr" in source.url:
+            return "a[href^='/news/']"
         if "safekorea.go.kr" in source.url or "d.kbs.co.kr" in source.url:
             return "a[href]"
         return "a[href]"
@@ -88,6 +101,18 @@ class HtmlCrawler(Crawler):
             return "_ln/" in href or "news_view.php" in href
         if "news.jtbc.co.kr" in source.url:
             return "article" in href or "news_id=" in href
+        if "news.kbs.co.kr" in source.url:
+            return "view.do?ncd=" in href
+        if "news.tvchosun.com" in source.url:
+            return "/site/data/html_dir/" in href and href.endswith(".html")
+        if "ichannela.com" in source.url:
+            return "/news/detail/" in href and href.endswith(".do")
+        if "mbn.co.kr" in source.url:
+            return bool(re.search(r"/news/[^/]+/\d+", href))
+        if "yonhapnewstv.co.kr" in source.url:
+            return "/news/" in href and not href.rstrip("/").endswith("/news")
+        if "nocutnews.co.kr" in source.url:
+            return bool(re.fullmatch(r"/news/\d+", href))
         if source.source_category in {"fire", "police", "disaster"}:
             return any(token in href for token in ("view", "bbs", "nttId", "cntId", "detail", ".do", ".jsp"))
         return True
