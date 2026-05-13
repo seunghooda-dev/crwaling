@@ -14,6 +14,7 @@ class Settings:
         self.sqlite_busy_timeout_ms = int(os.getenv("NEWSROOM_SQLITE_BUSY_TIMEOUT_MS", "10000"))
         self.max_raw_html_bytes = int(os.getenv("NEWSROOM_MAX_RAW_HTML_BYTES", "1500000"))
         self.retention_days = int(os.getenv("NEWSROOM_RETENTION_DAYS", "90"))
+        self.alert_retention_days = int(os.getenv("NEWSROOM_ALERT_RETENTION_DAYS", "14"))
         self.max_backup_count = int(os.getenv("NEWSROOM_MAX_BACKUP_COUNT", "20"))
         self.user_agent = os.getenv(
             "NEWSROOM_USER_AGENT",

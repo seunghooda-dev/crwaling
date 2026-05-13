@@ -25,3 +25,11 @@ def prune_old_data(conn, days: int | None = None) -> dict:
     deleted_articles = conn.execute("DELETE FROM articles WHERE collected_at < ?", (cutoff,)).rowcount
     conn.commit()
     return {"cutoff": cutoff, "archived": len(rows), "deleted_articles": deleted_articles, "archive_path": str(archive_path)}
+
+
+def prune_old_alerts(conn, days: int | None = None) -> dict:
+    days = days or settings.alert_retention_days
+    cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    deleted_alerts = conn.execute("DELETE FROM alert_events WHERE created_at < ?", (cutoff,)).rowcount
+    conn.commit()
+    return {"cutoff": cutoff, "deleted_alerts": deleted_alerts}

@@ -7,14 +7,19 @@ from app.models import Article, Source
 def upsert_source(conn: sqlite3.Connection, source: Source) -> None:
     conn.execute(
         """
-        INSERT INTO sources (name, source_type, url, source_category, enabled, crawl_interval_seconds)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO sources (
+            name, source_type, url, source_category, enabled,
+            crawl_interval_seconds, timeout_seconds, max_retries
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(name) DO UPDATE SET
             source_type = excluded.source_type,
             url = excluded.url,
             source_category = excluded.source_category,
             enabled = excluded.enabled,
-            crawl_interval_seconds = excluded.crawl_interval_seconds
+            crawl_interval_seconds = excluded.crawl_interval_seconds,
+            timeout_seconds = excluded.timeout_seconds,
+            max_retries = excluded.max_retries
         """,
         (
             source.name,
@@ -23,6 +28,8 @@ def upsert_source(conn: sqlite3.Connection, source: Source) -> None:
             source.source_category,
             int(source.enabled),
             source.crawl_interval_seconds,
+            source.timeout_seconds,
+            source.max_retries,
         ),
     )
 
@@ -88,6 +95,7 @@ def list_articles(
     min_importance: float | None = None,
     newsroom_status: str | None = None,
     source_category: str | None = None,
+    assignee: str | None = None,
 ) -> list[dict]:
     where = []
     params: list[object] = []
@@ -107,6 +115,9 @@ def list_articles(
     if source_category:
         where.append("source_category = ?")
         params.append(source_category)
+    if assignee:
+        where.append("assignee = ?")
+        params.append(assignee)
 
     sql = "SELECT * FROM articles"
     if where:
@@ -232,9 +243,27 @@ def list_issue_clusters(conn: sqlite3.Connection, limit: int = 50) -> list[dict]
     return [dict(row) for row in rows]
 
 
+def list_cluster_articles(conn: sqlite3.Connection, duplicate_group_id: str, limit: int = 50) -> list[dict]:
+    rows = conn.execute(
+        """
+        SELECT *
+        FROM articles
+        WHERE duplicate_group_id = ?
+        ORDER BY importance_score DESC, collected_at DESC
+        LIMIT ?
+        """,
+        (duplicate_group_id, limit),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def get_article(conn: sqlite3.Connection, article_id: int) -> dict | None:
     row = conn.execute("SELECT * FROM articles WHERE id = ?", (article_id,)).fetchone()
     return dict(row) if row else None
+
+
+def update_article_snapshot_path(conn: sqlite3.Connection, article_id: int, raw_html_path: str) -> None:
+    conn.execute("UPDATE articles SET raw_html_path = ? WHERE id = ?", (raw_html_path, article_id))
 
 
 def update_article_score(
@@ -402,6 +431,31 @@ def finish_crawl_run(
 def list_crawl_runs(conn: sqlite3.Connection, limit: int = 50) -> list[dict]:
     rows = conn.execute("SELECT * FROM crawl_runs ORDER BY started_at DESC LIMIT ?", (limit,)).fetchall()
     return [dict(row) for row in rows]
+
+
+def scheduler_status(conn: sqlite3.Connection) -> dict:
+    row = conn.execute(
+        """
+        SELECT started_at, finished_at, status, source_name
+        FROM crawl_runs
+        ORDER BY started_at DESC
+        LIMIT 1
+        """
+    ).fetchone()
+    running_count = conn.execute("SELECT COUNT(1) FROM crawl_runs WHERE status = 'running'").fetchone()[0]
+    failed_recent = conn.execute(
+        """
+        SELECT COUNT(1)
+        FROM crawl_runs
+        WHERE status = 'failed'
+          AND started_at >= datetime('now', '-24 hours')
+        """
+    ).fetchone()[0]
+    return {
+        "last_run": dict(row) if row else None,
+        "running_count": running_count,
+        "failed_24h": failed_recent,
+    }
 
 
 def list_source_quality(conn: sqlite3.Connection) -> list[dict]:

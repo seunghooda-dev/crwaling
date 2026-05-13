@@ -20,7 +20,7 @@ class HtmlCrawler(Crawler):
             "User-Agent": settings.user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
-        response = self._get_with_retry(str(source.url), headers)
+        response = self._get_with_retry(str(source.url), headers, source)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -46,14 +46,16 @@ class HtmlCrawler(Crawler):
             )
         return articles[:100]
 
-    def _get_with_retry(self, url: str, headers: dict[str, str]) -> httpx.Response:
+    def _get_with_retry(self, url: str, headers: dict[str, str], source: Source) -> httpx.Response:
         last_error: Exception | None = None
-        for attempt in range(3):
+        retries = source.max_retries if source.max_retries is not None else 2
+        timeout = source.timeout_seconds if source.timeout_seconds is not None else settings.request_timeout_seconds
+        for attempt in range(retries + 1):
             try:
                 return httpx.get(
                     url,
                     headers=headers,
-                    timeout=settings.request_timeout_seconds,
+                    timeout=timeout,
                     follow_redirects=True,
                 )
             except httpx.HTTPError as exc:

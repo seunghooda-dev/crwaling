@@ -5,7 +5,9 @@
     "source_category": "news",
     "url": "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER",
     "enabled": true,
-    "crawl_interval_seconds": 300
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "SBS News Issues",
@@ -13,7 +15,9 @@
     "source_category": "news",
     "url": "https://news.sbs.co.kr/news/headlineRssFeed.do?plink=RSSREADER",
     "enabled": true,
-    "crawl_interval_seconds": 300
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Yonhap English RSS",
@@ -21,7 +25,9 @@
     "source_category": "news",
     "url": "https://en.yna.co.kr/RSS/news.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "KBS World Today News",
@@ -29,7 +35,9 @@
     "source_category": "news",
     "url": "http://world.kbs.co.kr/rss/rss_news.htm?lang=e",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Korea Policy Press Releases",
@@ -37,7 +45,9 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/pressrelease.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Korea Policy News",
@@ -45,7 +55,9 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/policy.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Korea Policy Fact Check",
@@ -53,7 +65,9 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/fact.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Korea Policy E-Briefing",
@@ -61,7 +75,9 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/ebriefing.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Korea Policy Video",
@@ -69,7 +85,9 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/media.xml",
     "enabled": true,
-    "crawl_interval_seconds": 900
+    "crawl_interval_seconds": 900,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Korea Policy Photo",
@@ -77,7 +95,9 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/photo.xml",
     "enabled": true,
-    "crawl_interval_seconds": 900
+    "crawl_interval_seconds": 900,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "KDCA Press RSS",
@@ -85,7 +105,9 @@
     "source_category": "health",
     "url": "https://www.kdca.go.kr/bbs/kdca/41/rssList.do",
     "enabled": true,
-    "crawl_interval_seconds": 900
+    "crawl_interval_seconds": 900,
+    "timeout_seconds": 12,
+    "max_retries": 2
   },
   {
     "name": "Safe Korea Disaster Messages",
@@ -93,7 +115,9 @@
     "source_category": "disaster",
     "url": "https://www.safekorea.go.kr/idsiSFK/neo/emp/er/emergency_erm.html",
     "enabled": true,
-    "crawl_interval_seconds": 300
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 22,
+    "max_retries": 2
   },
   {
     "name": "National Fire Agency Press",
@@ -101,7 +125,9 @@
     "source_category": "fire",
     "url": "https://nfa.go.kr/nfa/news/pressrelease/press/",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 22,
+    "max_retries": 2
   },
   {
     "name": "Korean National Police Press",
@@ -109,7 +135,9 @@
     "source_category": "police",
     "url": "https://www.police.go.kr/user/bbs/BD_selectBbsList.do?q_bbsCode=1002",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 22,
+    "max_retries": 2
   },
   {
     "name": "MOIS Press Releases",
@@ -117,7 +145,9 @@
     "source_category": "disaster",
     "url": "https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardList.do?bbsId=BBSMSTR_000000000008",
     "enabled": true,
-    "crawl_interval_seconds": 600
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 22,
+    "max_retries": 2
   },
   {
     "name": "KMA Weather Alerts",
@@ -125,7 +155,9 @@
     "source_category": "weather",
     "url": "https://www.weather.go.kr/w/weather/warning/status.do",
     "enabled": true,
-    "crawl_interval_seconds": 300
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 22,
+    "max_retries": 2
   },
   {
     "name": "KBS Disaster Portal",
@@ -133,6 +165,8 @@
     "source_category": "disaster",
     "url": "https://d.kbs.co.kr/",
     "enabled": true,
-    "crawl_interval_seconds": 300
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 22,
+    "max_retries": 2
   }
 ]

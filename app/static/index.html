@@ -457,6 +457,20 @@
         line-height: 1.45;
       }
 
+      .urgent-item.flash {
+        animation: flashUrgent 900ms ease-in-out 2;
+      }
+
+      @keyframes flashUrgent {
+        0%,
+        100% {
+          background: #fff8f9;
+        }
+        50% {
+          background: #f2dbe3;
+        }
+      }
+
       .board {
         display: grid;
         grid-template-columns: repeat(5, minmax(180px, 1fr));
@@ -537,6 +551,7 @@
           <option value="done">확인완료</option>
           <option value="hold">사용주의</option>
         </select>
+        <input id="assigneeFilter" placeholder="담당자" />
         <select id="mode">
           <option value="latest">최신</option>
           <option value="priority">중요</option>
@@ -577,6 +592,10 @@
           <div class="side-body" id="stats"></div>
         </section>
         <section class="panel">
+          <h2>자동 수집기</h2>
+          <div class="side-body" id="schedulerStatus"></div>
+        </section>
+        <section class="panel">
           <h2>출처 경고</h2>
           <div class="side-body" id="sourceWarnings"></div>
         </section>
@@ -587,6 +606,7 @@
             <button id="exportCue">큐시트 내보내기</button>
             <button id="backupDb">DB 백업</button>
             <button id="rebuildClusters">이슈 재계산</button>
+            <button id="pruneAlerts">오래된 알림 정리</button>
             <button id="validateConfig">설정 검사</button>
           </div>
         </section>
@@ -631,12 +651,14 @@
       const sourceWarningsEl = document.querySelector("#sourceWarnings");
       const opsStatusEl = document.querySelector("#opsStatus");
       const sourceQualityEl = document.querySelector("#sourceQuality");
+      const schedulerStatusEl = document.querySelector("#schedulerStatus");
       const liveStatusEl = document.querySelector("#liveStatus");
       const categoryButtons = Array.from(document.querySelectorAll("#quickbar button"));
       const readKey = "newsroom-read-article-ids";
       let activeCategory = "";
       let toastTimer = undefined;
       let lastArticleCount = undefined;
+      let lastUrgentIds = new Set();
       let selectedArticleId = undefined;
 
       function showToast(message) {
@@ -703,6 +725,26 @@
         if (size > 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
         if (size > 1024) return `${(size / 1024).toFixed(1)} KB`;
         return `${size} B`;
+      }
+
+      function playUrgentTone() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          const context = new AudioContext();
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.value = 880;
+          gain.gain.setValueAtTime(0.0001, context.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.32);
+          oscillator.connect(gain).connect(context.destination);
+          oscillator.start();
+          oscillator.stop(context.currentTime + 0.35);
+        } catch {
+          return;
+        }
       }
 
       function articleTemplate(item) {
@@ -780,6 +822,7 @@
         const mode = document.querySelector("#mode").value;
         const source = sourceEl.value;
         const status = document.querySelector("#status").value;
+        const assignee = document.querySelector("#assigneeFilter").value.trim();
         const params = new URLSearchParams({ limit: "50" });
         if (mode === "admin") {
           await loadAdmin();
@@ -793,6 +836,7 @@
         if (source) params.set("source_name", source);
         if (status) params.set("newsroom_status", status);
         if (activeCategory) params.set("source_category", activeCategory);
+        if (assignee) params.set("assignee", assignee);
         const url =
           mode === "priority"
             ? `/priority?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
@@ -823,6 +867,8 @@
           statuses.map(async ([value, label]) => {
             const params = new URLSearchParams({ limit: "20", newsroom_status: value });
             if (activeCategory) params.set("source_category", activeCategory);
+            const assignee = document.querySelector("#assigneeFilter").value.trim();
+            if (assignee) params.set("assignee", assignee);
             const items = await fetchJson(`/articles?${params.toString()}`);
             return { value, label, items };
           }),
@@ -944,12 +990,14 @@
         const params = new URLSearchParams({ limit: "5", threshold: "4.5" });
         if (activeCategory) params.set("source_category", activeCategory);
         const items = await fetchJson(`/alerts?${params.toString()}`);
+        const currentIds = new Set(items.map((item) => String(item.id)));
+        const hasNewUrgent = [...currentIds].some((id) => !lastUrgentIds.has(id));
         urgentRailEl.innerHTML = items.length
           ? items
               .slice(0, 5)
               .map(
                 (item) => `
-                  <div class="urgent-item" data-id="${item.id}">
+                  <div class="urgent-item ${lastUrgentIds.has(String(item.id)) ? "" : "flash"}" data-id="${item.id}">
                     <strong>${escapeHtml(item.title)}</strong><br />
                     ${escapeHtml(categoryLabel(item.source_category))} · ${escapeHtml(item.source_name)} · score ${Number(item.importance_score || 0).toFixed(1)}
                   </div>
@@ -957,6 +1005,23 @@
               )
               .join("")
           : '<div class="empty">긴급 후보가 없습니다.</div>';
+        if (lastUrgentIds.size && hasNewUrgent) {
+          playUrgentTone();
+          showToast("새 긴급 후보가 들어왔습니다.");
+        }
+        lastUrgentIds = currentIds;
+      }
+
+      async function loadSchedulerStatus() {
+        const status = await fetchJson("/scheduler/status");
+        const last = status.last_run;
+        const level = status.running_count ? "warning" : status.failed_24h ? "danger" : "";
+        schedulerStatusEl.innerHTML = `
+          <div class="stat ${level}"><span>현재 실행</span><strong>${status.running_count ? `${status.running_count}건` : "대기"}</strong></div>
+          <div class="stat"><span>최근 상태</span><strong>${escapeHtml(last?.status || "-")}</strong></div>
+          <div class="stat"><span>최근 출처</span><strong>${escapeHtml(last?.source_name || "-")}</strong></div>
+          <div class="stat"><span>24시간 실패</span><strong>${status.failed_24h}</strong></div>
+        `;
       }
 
       async function loadOperations() {
@@ -1033,13 +1098,21 @@
         clustersEl.innerHTML = clusters
           .map(
             (cluster) => `
-              <div class="cluster">
+              <div class="cluster" data-cluster-id="${escapeHtml(cluster.duplicate_group_id)}">
                 <strong>${escapeHtml(cluster.sample_title)}</strong><br />
                 기사 ${cluster.article_count} · 출처 ${cluster.source_count} · score ${Number(cluster.max_importance || 0).toFixed(1)}
               </div>
             `,
           )
           .join("");
+      }
+
+      async function showClusterDetail(clusterId) {
+        const items = await fetchJson(`/clusters/${encodeURIComponent(clusterId)}/articles?limit=30`);
+        articlesEl.innerHTML = items.length
+          ? items.map(articleTemplate).join("")
+          : '<div class="empty">묶음 안에 표시할 기사가 없습니다.</div>';
+        liveStatusEl.textContent = `이슈 묶음 ${items.length}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
       }
 
       async function loadAlertEvents() {
@@ -1087,6 +1160,9 @@
       document.querySelector("#q").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadArticles();
       });
+      document.querySelector("#assigneeFilter").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") loadArticles();
+      });
       document.querySelector("#presetbar").addEventListener("click", (event) => {
         const query = event.target.dataset?.query;
         if (!query) return;
@@ -1105,11 +1181,15 @@
       document.querySelector("#exportCsv").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "1000" });
         if (activeCategory) params.set("source_category", activeCategory);
+        const assignee = document.querySelector("#assigneeFilter").value.trim();
+        if (assignee) params.set("assignee", assignee);
         window.open(`/exports/articles.csv?${params.toString()}`, "_blank");
       });
       document.querySelector("#exportCue").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "100", newsroom_status: "ready" });
         if (activeCategory) params.set("source_category", activeCategory);
+        const assignee = document.querySelector("#assigneeFilter").value.trim();
+        if (assignee) params.set("assignee", assignee);
         window.open(`/exports/cuesheet.txt?${params.toString()}`, "_blank");
       });
       document.querySelector("#backupDb").addEventListener("click", async () => {
@@ -1122,9 +1202,18 @@
         showToast("이슈 묶음을 재계산했습니다.");
         await loadClusters();
       });
+      document.querySelector("#pruneAlerts").addEventListener("click", async () => {
+        const result = await fetchJson("/maintenance/prune-alerts?days=14", { method: "POST" });
+        showToast(`오래된 알림 ${result.deleted_alerts}건을 정리했습니다.`);
+        await Promise.all([loadAlertEvents(), loadStats()]);
+      });
       document.querySelector("#validateConfig").addEventListener("click", async () => {
         const result = await fetchJson("/admin/validate");
         showToast(result.ok ? "설정 정상" : result.errors.join("\\n"));
+      });
+      clustersEl.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-cluster-id]");
+        if (item) showClusterDetail(item.dataset.clusterId).catch((error) => showToast(error.message));
       });
       urgentRailEl.addEventListener("click", (event) => {
         const item = event.target.closest("[data-id]");
@@ -1164,6 +1253,7 @@
           loadClusters(),
           loadAlertEvents(),
           loadRuns(),
+          loadSchedulerStatus(),
           loadUrgentRail(),
           loadOperations(),
           loadSourceQuality(),

@@ -44,6 +44,20 @@ def validate_sources(path: Path = Path("config/sources.json")) -> list[str]:
         url = item.get("url")
         if not urlparse(str(url)).scheme.startswith("http"):
             errors.append(f"{prefix}: invalid url {url}")
+        timeout_seconds = item.get("timeout_seconds")
+        if timeout_seconds is not None:
+            try:
+                if float(timeout_seconds) <= 0:
+                    errors.append(f"{prefix}: timeout_seconds must be positive")
+            except (TypeError, ValueError):
+                errors.append(f"{prefix}: timeout_seconds must be a number")
+        max_retries = item.get("max_retries")
+        if max_retries is not None:
+            try:
+                if int(max_retries) < 0:
+                    errors.append(f"{prefix}: max_retries must be 0 or greater")
+            except (TypeError, ValueError):
+                errors.append(f"{prefix}: max_retries must be an integer")
     return errors
 
 

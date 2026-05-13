@@ -20,6 +20,8 @@ def load_sources(path: Path = Path("config/sources.json")) -> list[Source]:
                 source_category=str(item.get("source_category", "news")),
                 enabled=bool(item.get("enabled", True)),
                 crawl_interval_seconds=int(item.get("crawl_interval_seconds", 300)),
+                timeout_seconds=float(item["timeout_seconds"]) if item.get("timeout_seconds") is not None else None,
+                max_retries=int(item["max_retries"]) if item.get("max_retries") is not None else None,
             )
         )
     return sources

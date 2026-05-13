@@ -13,6 +13,7 @@ from app.repository import (
     acknowledge_alert_event,
     list_alert_articles,
     list_alert_events,
+    list_cluster_articles,
     list_articles,
     list_crawl_runs,
     list_issue_clusters,
@@ -21,6 +22,7 @@ from app.repository import (
     list_source_quality,
     newsroom_stats,
     save_ai_assist,
+    scheduler_status,
     update_article_workflow,
 )
 from app.services.ai_assist import build_ai_assist
@@ -28,7 +30,7 @@ from app.services.backup_service import backup_database, list_backups, restore_d
 from app.services.cluster_service import rebuild_clusters
 from app.services.detail_service import enrich_article_details
 from app.services.export_service import articles_to_csv, articles_to_cuesheet
-from app.services.retention_service import prune_old_data
+from app.services.retention_service import prune_old_alerts, prune_old_data
 from app.services.validation_service import validate_all
 
 app = FastAPI(title="Broadcast News Crawling Assistant")
@@ -131,6 +133,11 @@ def stats(conn=Depends(db_session)) -> dict:
     return newsroom_stats(conn)
 
 
+@app.get("/scheduler/status")
+def crawl_scheduler_status(conn=Depends(db_session)) -> dict:
+    return scheduler_status(conn)
+
+
 @app.get("/articles")
 def articles(
     limit: int = Query(default=50, ge=1, le=200),
@@ -139,6 +146,7 @@ def articles(
     min_importance: float | None = Query(default=None, ge=0),
     newsroom_status: str | None = None,
     source_category: str | None = None,
+    assignee: str | None = None,
     conn=Depends(db_session),
 ) -> list[dict]:
     return list_articles(
@@ -149,6 +157,7 @@ def articles(
         min_importance=min_importance,
         newsroom_status=newsroom_status,
         source_category=source_category,
+        assignee=assignee,
     )
 
 
@@ -191,6 +200,15 @@ def acknowledge_alert(alert_id: int, conn=Depends(db_session)) -> dict:
 @app.get("/clusters")
 def clusters(limit: int = Query(default=50, ge=1, le=200), conn=Depends(db_session)) -> list[dict]:
     return list_issue_clusters(conn, limit=limit)
+
+
+@app.get("/clusters/{duplicate_group_id}/articles")
+def cluster_articles(
+    duplicate_group_id: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    conn=Depends(db_session),
+) -> list[dict]:
+    return list_cluster_articles(conn, duplicate_group_id=duplicate_group_id, limit=limit)
 
 
 @app.get("/articles/{article_id}")
@@ -256,9 +274,16 @@ def export_articles_csv(
     limit: int = Query(default=200, ge=1, le=1000),
     newsroom_status: str | None = None,
     source_category: str | None = None,
+    assignee: str | None = None,
     conn=Depends(db_session),
 ) -> Response:
-    articles = list_articles(conn, limit=limit, newsroom_status=newsroom_status, source_category=source_category)
+    articles = list_articles(
+        conn,
+        limit=limit,
+        newsroom_status=newsroom_status,
+        source_category=source_category,
+        assignee=assignee,
+    )
     return Response(
         content=articles_to_csv(articles),
         media_type="text/csv; charset=utf-8",
@@ -271,9 +296,16 @@ def export_cuesheet(
     limit: int = Query(default=50, ge=1, le=300),
     newsroom_status: str | None = "ready",
     source_category: str | None = None,
+    assignee: str | None = None,
     conn=Depends(db_session),
 ) -> PlainTextResponse:
-    articles = list_articles(conn, limit=limit, newsroom_status=newsroom_status, source_category=source_category)
+    articles = list_articles(
+        conn,
+        limit=limit,
+        newsroom_status=newsroom_status,
+        source_category=source_category,
+        assignee=assignee,
+    )
     return PlainTextResponse(
         content=articles_to_cuesheet(articles),
         headers={"Content-Disposition": "attachment; filename=newsroom_cuesheet.txt"},
@@ -317,3 +349,8 @@ def restore_backup(backup_name: str) -> dict:
 @app.post("/maintenance/prune")
 def prune_data(days: int = Query(default=90, ge=1, le=3650), conn=Depends(db_session)) -> dict:
     return prune_old_data(conn, days=days)
+
+
+@app.post("/maintenance/prune-alerts")
+def prune_alerts(days: int = Query(default=14, ge=1, le=3650), conn=Depends(db_session)) -> dict:
+    return prune_old_alerts(conn, days=days)

@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS sources (
     source_category TEXT NOT NULL DEFAULT 'news',
     enabled INTEGER NOT NULL DEFAULT 1,
     crawl_interval_seconds INTEGER NOT NULL DEFAULT 300,
+    timeout_seconds REAL,
+    max_retries INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -95,6 +97,8 @@ ARTICLE_MIGRATIONS = {
 
 SOURCE_MIGRATIONS = {
     "source_category": "ALTER TABLE sources ADD COLUMN source_category TEXT NOT NULL DEFAULT 'news'",
+    "timeout_seconds": "ALTER TABLE sources ADD COLUMN timeout_seconds REAL",
+    "max_retries": "ALTER TABLE sources ADD COLUMN max_retries INTEGER",
 }
 
 

@@ -4,9 +4,17 @@ import logging
 from app.crawlers.html import HtmlCrawler
 from app.crawlers.rss import RssCrawler
 from app.models import Source, SourceType
-from app.repository import finish_crawl_run, get_article_by_url, insert_article, list_sources, start_crawl_run
+from app.repository import (
+    finish_crawl_run,
+    get_article_by_url,
+    insert_article,
+    list_sources,
+    start_crawl_run,
+    update_article_snapshot_path,
+)
 from app.services.alert_service import record_alert_if_needed
 from app.services.scoring import apply_newsroom_scoring
+from app.services.snapshot_service import save_article_snapshot
 
 
 class CrawlService:
@@ -29,6 +37,8 @@ class CrawlService:
                 source_category=row["source_category"],
                 enabled=bool(row["enabled"]),
                 crawl_interval_seconds=row["crawl_interval_seconds"],
+                timeout_seconds=row["timeout_seconds"],
+                max_retries=row["max_retries"],
             )
             crawler = self.crawlers.get(source.source_type)
             if crawler is None:
@@ -44,6 +54,9 @@ class CrawlService:
                         count += 1
                         stored = get_article_by_url(conn, article.url)
                         if stored:
+                            snapshot_path = save_article_snapshot(stored, article)
+                            if snapshot_path:
+                                update_article_snapshot_path(conn, stored["id"], str(snapshot_path))
                             record_alert_if_needed(conn, stored)
                 finish_crawl_run(conn, run_id, "success", count)
                 conn.commit()

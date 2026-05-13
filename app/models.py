@@ -18,6 +18,8 @@ class Source:
     source_category: str = "news"
     enabled: bool = True
     crawl_interval_seconds: int = 300
+    timeout_seconds: float | None = None
+    max_retries: int | None = None
 
 
 @dataclass
