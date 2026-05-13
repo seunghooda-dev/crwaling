@@ -155,6 +155,7 @@ def articles(
     newsroom_status: str | None = None,
     source_category: str | None = None,
     assignee: str | None = None,
+    collected_within_days: int | None = Query(default=None, ge=1, le=365),
     conn=Depends(db_session),
     ) -> list[dict]:
     return list_articles(
@@ -166,6 +167,7 @@ def articles(
         newsroom_status=newsroom_status,
         source_category=source_category,
         assignee=assignee,
+        collected_within_days=collected_within_days,
     )
 
 
@@ -177,6 +179,7 @@ def articles_count(
     newsroom_status: str | None = None,
     source_category: str | None = None,
     assignee: str | None = None,
+    collected_within_days: int | None = Query(default=None, ge=1, le=365),
     conn=Depends(db_session),
 ) -> dict:
     return {
@@ -188,6 +191,7 @@ def articles_count(
             newsroom_status=newsroom_status,
             source_category=source_category,
             assignee=assignee,
+            collected_within_days=collected_within_days,
         )
     }
 
@@ -331,6 +335,7 @@ def export_articles_csv(
     newsroom_status: str | None = None,
     source_category: str | None = None,
     assignee: str | None = None,
+    collected_within_days: int | None = Query(default=None, ge=1, le=365),
     conn=Depends(db_session),
 ) -> Response:
     articles = list_articles(
@@ -339,6 +344,7 @@ def export_articles_csv(
         newsroom_status=newsroom_status,
         source_category=source_category,
         assignee=assignee,
+        collected_within_days=collected_within_days,
     )
     return Response(
         content=articles_to_csv(articles),
@@ -353,6 +359,7 @@ def export_cuesheet(
     newsroom_status: str | None = "ready",
     source_category: str | None = None,
     assignee: str | None = None,
+    collected_within_days: int | None = Query(default=None, ge=1, le=365),
     conn=Depends(db_session),
 ) -> PlainTextResponse:
     articles = list_articles(
@@ -361,6 +368,7 @@ def export_cuesheet(
         newsroom_status=newsroom_status,
         source_category=source_category,
         assignee=assignee,
+        collected_within_days=collected_within_days,
     )
     return PlainTextResponse(
         content=articles_to_cuesheet(articles),

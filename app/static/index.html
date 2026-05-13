@@ -80,7 +80,7 @@
 
       .toolbar {
         display: grid;
-        grid-template-columns: minmax(170px, 220px) minmax(140px, 170px) minmax(260px, 1fr) minmax(110px, 130px) auto;
+        grid-template-columns: minmax(160px, 210px) minmax(130px, 160px) minmax(110px, 130px) minmax(110px, 140px) minmax(100px, 120px) auto;
         gap: 8px;
         align-items: center;
         justify-content: stretch;
@@ -94,7 +94,7 @@
       }
 
       .toolbar .search-input {
-        min-width: 260px;
+        min-width: 110px;
       }
 
       .quickbar {
@@ -685,6 +685,12 @@
           <option value="done">확인완료</option>
           <option value="hold">사용주의</option>
         </select>
+        <select id="period">
+          <option value="1">24시간</option>
+          <option value="3">3일</option>
+          <option value="7">7일</option>
+          <option value="">전체</option>
+        </select>
         <input id="q" class="search-input" placeholder="검색어" />
         <select id="mode">
           <option value="latest">최신</option>
@@ -1014,6 +1020,7 @@
         const mode = document.querySelector("#mode").value;
         const source = sourceEl.value;
         const status = document.querySelector("#status").value;
+        const period = document.querySelector("#period").value;
         const params = new URLSearchParams({ limit: "50" });
         if (mode === "admin") {
           await loadAdmin();
@@ -1027,6 +1034,7 @@
         if (source) params.set("source_name", source);
         if (status) params.set("newsroom_status", status);
         if (activeCategory) params.set("source_category", activeCategory);
+        if (period) params.set("collected_within_days", period);
         const url =
           mode === "priority"
             ? `/priority?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
@@ -1069,6 +1077,8 @@
           statuses.map(async ([value, label]) => {
             const params = new URLSearchParams({ limit: "20", newsroom_status: value });
             if (activeCategory) params.set("source_category", activeCategory);
+            const period = document.querySelector("#period").value;
+            if (period) params.set("collected_within_days", period);
             const items = await fetchJson(`/articles?${params.toString()}`);
             return { value, label, items };
           }),
@@ -1433,6 +1443,9 @@
       document.querySelector("#q").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadArticles().catch((error) => showToast(error.message));
       });
+      document.querySelector("#period").addEventListener("change", () => {
+        loadArticles().catch((error) => showToast(error.message));
+      });
       document.querySelector("#runSearch").addEventListener("keydown", (event) => {
         if (event.key === "Enter") loadRuns();
       });
@@ -1455,11 +1468,15 @@
       document.querySelector("#exportCsv").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "1000" });
         if (activeCategory) params.set("source_category", activeCategory);
+        const period = document.querySelector("#period").value;
+        if (period) params.set("collected_within_days", period);
         window.open(`/exports/articles.csv?${params.toString()}`, "_blank");
       });
       document.querySelector("#exportCue").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "100", newsroom_status: "ready" });
         if (activeCategory) params.set("source_category", activeCategory);
+        const period = document.querySelector("#period").value;
+        if (period) params.set("collected_within_days", period);
         window.open(`/exports/cuesheet.txt?${params.toString()}`, "_blank");
       });
       document.querySelector("#backupDb").addEventListener("click", async () => {

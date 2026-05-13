@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from datetime import datetime, timedelta
 
 from app.models import Article, Source
 
@@ -99,6 +100,7 @@ def _article_filters(
     newsroom_status: str | None = None,
     source_category: str | None = None,
     assignee: str | None = None,
+    collected_within_days: int | None = None,
 ) -> tuple[list[str], list[object]]:
     where = []
     params: list[object] = []
@@ -121,6 +123,10 @@ def _article_filters(
     if assignee:
         where.append("assignee = ?")
         params.append(assignee)
+    if collected_within_days:
+        cutoff = datetime.now() - timedelta(days=collected_within_days)
+        where.append("collected_at >= ?")
+        params.append(cutoff.strftime("%Y-%m-%d %H:%M:%S"))
     return where, params
 
 
@@ -133,6 +139,7 @@ def list_articles(
     newsroom_status: str | None = None,
     source_category: str | None = None,
     assignee: str | None = None,
+    collected_within_days: int | None = None,
 ) -> list[dict]:
     where, params = _article_filters(
         source_name=source_name,
@@ -141,6 +148,7 @@ def list_articles(
         newsroom_status=newsroom_status,
         source_category=source_category,
         assignee=assignee,
+        collected_within_days=collected_within_days,
     )
 
     sql = """
@@ -174,6 +182,7 @@ def count_articles(
     newsroom_status: str | None = None,
     source_category: str | None = None,
     assignee: str | None = None,
+    collected_within_days: int | None = None,
 ) -> int:
     where, params = _article_filters(
         source_name=source_name,
@@ -182,6 +191,7 @@ def count_articles(
         newsroom_status=newsroom_status,
         source_category=source_category,
         assignee=assignee,
+        collected_within_days=collected_within_days,
     )
     sql = "SELECT COUNT(1) FROM articles"
     if where:
