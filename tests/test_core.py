@@ -89,6 +89,26 @@ def test_article_sort_and_date_range_filters():
     assert count_articles(conn, collected_from="2026-05-14 00:00:00") == 0
 
 
+def test_article_list_supports_offset_pagination():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.executemany(
+        """
+        INSERT INTO articles (source_name, source_type, title, url, fingerprint, published_at)
+        VALUES ('source', 'rss', ?, ?, ?, ?)
+        """,
+        [
+            ("첫 기사", "https://one", "one", "2026-05-13T19:00:00+09:00"),
+            ("둘째 기사", "https://two", "two", "2026-05-13T18:00:00+09:00"),
+            ("셋째 기사", "https://three", "three", "2026-05-13T17:00:00+09:00"),
+        ],
+    )
+
+    rows = list_articles(conn, limit=1, offset=1, sort="latest")
+    assert [row["title"] for row in rows] == ["둘째 기사"]
+
+
 def test_latest_sort_prefers_published_at_over_collection_batch():
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row

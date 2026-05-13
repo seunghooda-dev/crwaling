@@ -172,6 +172,7 @@ def _article_order(sort: str | None) -> str:
 def list_articles(
     conn: sqlite3.Connection,
     limit: int = 50,
+    offset: int = 0,
     source_name: str | None = None,
     q: str | None = None,
     min_importance: float | None = None,
@@ -212,8 +213,8 @@ def list_articles(
     """
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += f" ORDER BY {_article_order(sort)} LIMIT ?"
-    params.append(limit)
+    sql += f" ORDER BY {_article_order(sort)} LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
     rows = conn.execute(sql, params).fetchall()
     return [dict(row) for row in rows]
 

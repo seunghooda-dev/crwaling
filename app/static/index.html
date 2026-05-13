@@ -333,6 +333,33 @@
         min-width: 0;
       }
 
+      .pagination {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 0;
+      }
+
+      .pagination button {
+        width: auto;
+        min-width: 34px;
+        height: 32px;
+        padding: 0 10px;
+      }
+
+      .pagination button.active {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fffefa;
+      }
+
+      .pagination span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
       .detail-panel {
         position: sticky;
         top: 16px;
@@ -908,7 +935,9 @@
       const categoryButtons = Array.from(document.querySelectorAll("#quickbar button"));
       const readKey = "newsroom-read-article-ids";
       const densityKey = "newsroom-card-density";
+      const pageSize = 50;
       let activeCategory = "";
+      let currentPage = 1;
       let toastTimer = undefined;
       let lastArticleCount = undefined;
       let lastUrgentIds = new Set();
@@ -1285,7 +1314,10 @@
         const source = sourceEl.value;
         const status = document.querySelector("#status").value;
         const sort = document.querySelector("#sort").value;
-        const params = new URLSearchParams({ limit: "200" });
+        if (options.page) currentPage = options.page;
+        if (options.resetPage) currentPage = 1;
+        const offset = (currentPage - 1) * pageSize;
+        const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
         if (mode === "admin") {
           await loadAdmin();
           return;
@@ -1320,17 +1352,55 @@
             countInfo = null;
           }
         }
+        const totalCount = countInfo?.count ?? items.length;
+        const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+        if (currentPage > totalPages) {
+          currentPage = totalPages;
+          return loadArticles({ page: currentPage });
+        }
         articlesEl.innerHTML = items.length
           ? items.map(articleTemplate).join("")
           : '<div class="empty">표시할 기사가 없습니다.</div>';
+        if (mode === "latest" && totalPages > 1) {
+          articlesEl.insertAdjacentHTML("beforeend", paginationTemplate(currentPage, totalPages));
+        }
         const unread = items.filter((item) => !readIds().has(String(item.id))).length;
         if (lastArticleCount !== undefined && items.length > lastArticleCount) {
           showToast(`새 기사 ${items.length - lastArticleCount}건이 목록에 표시됐습니다.`);
         }
         lastArticleCount = items.length;
         const resultLabel = q || source || status || activeCategory ? "검색 결과" : "목록";
-        const resultCount = countInfo ? `${items.length}/${countInfo.count}건` : `${items.length}건`;
+        const start = items.length ? offset + 1 : 0;
+        const end = offset + items.length;
+        const resultCount = countInfo ? `${start}-${end}/${countInfo.count}건` : `${items.length}건`;
         liveStatusEl.textContent = `${resultLabel} ${resultCount} · 미확인 ${unread}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
+      }
+
+      function paginationTemplate(page, totalPages) {
+        const pages = visiblePages(page, totalPages);
+        return `
+          <nav class="pagination" aria-label="기사 페이지">
+            <button data-page="${Math.max(1, page - 1)}" ${page === 1 ? "disabled" : ""}>이전</button>
+            ${pages
+              .map((item) =>
+                item === "..."
+                  ? "<span>...</span>"
+                  : `<button data-page="${item}" class="${item === page ? "active" : ""}">${item}</button>`,
+              )
+              .join("")}
+            <button data-page="${Math.min(totalPages, page + 1)}" ${page === totalPages ? "disabled" : ""}>다음</button>
+          </nav>
+        `;
+      }
+
+      function visiblePages(page, totalPages) {
+        const pages = new Set([1, totalPages, page, page - 1, page + 1]);
+        if (page <= 3) [2, 3, 4].forEach((item) => pages.add(item));
+        if (page >= totalPages - 2) [totalPages - 3, totalPages - 2, totalPages - 1].forEach((item) => pages.add(item));
+        const sorted = Array.from(pages)
+          .filter((item) => item >= 1 && item <= totalPages)
+          .sort((a, b) => a - b);
+        return sorted.flatMap((item, index) => (index && item - sorted[index - 1] > 1 ? ["...", item] : [item]));
       }
 
       async function loadBoard() {
@@ -1777,7 +1847,7 @@
           document.querySelector("#mode").value = "latest";
           document.querySelector("#sort").value = "latest";
         }
-        loadArticles({ refreshFirst: true }).catch((error) => showToast(error.message));
+        loadArticles({ refreshFirst: true, resetPage: true }).catch((error) => showToast(error.message));
       }
 
       function setLiveSearchState(active) {
@@ -1819,16 +1889,16 @@
         if (event.key === "Enter") runSearch();
       });
       document.querySelector("#period").addEventListener("change", () => {
-        loadArticles().catch((error) => showToast(error.message));
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#dateFrom").addEventListener("change", () => {
-        loadArticles().catch((error) => showToast(error.message));
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#dateTo").addEventListener("change", () => {
-        loadArticles().catch((error) => showToast(error.message));
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#sort").addEventListener("change", () => {
-        loadArticles().catch((error) => showToast(error.message));
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#density").addEventListener("change", (event) => {
         document.body.dataset.density = event.target.value;
@@ -1843,7 +1913,7 @@
         if (!query) return;
         document.querySelector("#q").value = query;
         document.querySelector("#mode").value = "latest";
-        loadArticles({ refreshFirst: true }).catch((error) => showToast(error.message));
+        loadArticles({ refreshFirst: true, resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#quickbar").addEventListener("click", (event) => {
         if (!event.target.dataset) return;
@@ -1851,6 +1921,7 @@
         activeCategory = event.target.dataset.category;
         document.querySelectorAll("#quickbar button").forEach((button) => button.classList.remove("active"));
         event.target.classList.add("active");
+        currentPage = 1;
         refreshDashboard().catch((error) => showToast(error.message));
       });
       document.querySelector("#sourcebar").addEventListener("click", (event) => {
@@ -1858,7 +1929,7 @@
         sourceEl.value = event.target.dataset.sourceName;
         document.querySelectorAll("#sourcebar button").forEach((button) => button.classList.remove("active"));
         event.target.classList.add("active");
-        loadArticles().catch((error) => showToast(error.message));
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#exportCsv").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "1000" });
@@ -1905,6 +1976,15 @@
         if (item) showDetail(item.dataset.id).catch((error) => showToast(error.message));
       });
       articlesEl.addEventListener("click", (event) => {
+        const pageButton = event.target.closest(".pagination button[data-page]");
+        if (pageButton) {
+          const page = Number(pageButton.dataset.page);
+          if (Number.isFinite(page) && page !== currentPage) {
+            loadArticles({ page }).catch((error) => showToast(error.message));
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          return;
+        }
         const compareRow = event.target.closest(".compare-table tr[data-id]");
         if (compareRow) {
           showDetail(compareRow.dataset.id).catch((error) => showToast(error.message));

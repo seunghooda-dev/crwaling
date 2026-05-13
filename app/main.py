@@ -216,6 +216,7 @@ def crawl_cancel(conn=Depends(db_session)) -> dict:
 @app.get("/articles")
 def articles(
     limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     source_name: str | None = None,
     q: str | None = None,
     min_importance: float | None = Query(default=None, ge=0),
@@ -231,6 +232,7 @@ def articles(
     return list_articles(
         conn,
         limit=limit,
+        offset=offset,
         source_name=source_name,
         q=q,
         min_importance=min_importance,
