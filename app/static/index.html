@@ -80,7 +80,7 @@
 
       .toolbar {
         display: grid;
-        grid-template-columns: minmax(160px, 210px) minmax(130px, 160px) minmax(110px, 130px) minmax(110px, 140px) minmax(100px, 120px) auto;
+        grid-template-columns: minmax(160px, 210px) minmax(130px, 160px) minmax(220px, 280px) minmax(110px, 130px) minmax(100px, 120px) minmax(110px, 130px);
         gap: 8px;
         align-items: center;
         justify-content: stretch;
@@ -94,7 +94,7 @@
       }
 
       .toolbar .search-input {
-        min-width: 110px;
+        min-width: 220px;
       }
 
       .quickbar {
@@ -685,13 +685,13 @@
           <option value="done">확인완료</option>
           <option value="hold">사용주의</option>
         </select>
+        <input id="q" class="search-input" placeholder="검색어" />
         <select id="period">
           <option value="1">24시간</option>
           <option value="3">3일</option>
           <option value="7">7일</option>
           <option value="">전체</option>
         </select>
-        <input id="q" class="search-input" placeholder="검색어" />
         <select id="mode">
           <option value="latest">최신</option>
           <option value="priority">중요</option>
