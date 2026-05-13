@@ -1,0 +1,79 @@
+from datetime import datetime
+from time import sleep
+
+import feedparser
+import httpx
+from dateutil import parser as date_parser
+
+from app.config import settings
+from app.content import clean_html_text, extract_media_urls
+from app.crawlers.base import Crawler
+from app.models import Article, Source
+from app.text import article_fingerprint, canonicalize_url, normalize_space
+
+
+class RssCrawler(Crawler):
+    def crawl(self, source: Source) -> list[Article]:
+        headers = {
+            "User-Agent": settings.user_agent,
+            "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        }
+        response = self._get_with_retry(str(source.url), headers)
+        response.raise_for_status()
+        feed = feedparser.parse(response.text)
+
+        articles: list[Article] = []
+        for entry in feed.entries:
+            title = normalize_space(getattr(entry, "title", ""))
+            link = getattr(entry, "link", "")
+            if not title or not link:
+                continue
+
+            published_at = self._parse_date(getattr(entry, "published", None) or getattr(entry, "updated", None))
+            canonical_url = canonicalize_url(link)
+            published_date = published_at.date().isoformat() if published_at else None
+            raw_summary = getattr(entry, "summary", "")
+            image_urls, video_urls = extract_media_urls(raw_summary)
+            articles.append(
+                Article(
+                    source_name=source.name,
+                    source_type=source.source_type.value,
+                    source_category=source.source_category,
+                    title=title,
+                    url=link,
+                    canonical_url=canonical_url,
+                    author=getattr(entry, "author", None),
+                    published_at=published_at,
+                    summary=clean_html_text(raw_summary),
+                    image_urls=image_urls,
+                    video_urls=video_urls,
+                    fingerprint=article_fingerprint(title, source.name, published_date),
+                    duplicate_group_id=article_fingerprint(title, "global", published_date)[:16],
+                )
+            )
+        return articles
+
+    def _parse_date(self, value: str | None) -> datetime | None:
+        if not value:
+            return None
+        try:
+            return date_parser.parse(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _get_with_retry(self, url: str, headers: dict[str, str]) -> httpx.Response:
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                return httpx.get(
+                    url,
+                    headers=headers,
+                    timeout=settings.request_timeout_seconds,
+                    follow_redirects=True,
+                )
+            except httpx.HTTPError as exc:
+                last_error = exc
+                sleep(0.6 * (attempt + 1))
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("RSS request failed")

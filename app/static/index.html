@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Newsroom Monitor</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --stone: #e5e3d7;
+        --wine: #6d1a36;
+        --green: #33673b;
+        --signal: #e4572e;
+        --navy: #083d77;
+        --bg: #eef0ea;
+        --panel: #fffefa;
+        --panel-2: #f7f7f1;
+        --ink: #172231;
+        --muted: #607080;
+        --line: #d7d8cf;
+        --line-strong: #9ea8a1;
+        --accent: #083d77;
+        --accent-ink: #062a52;
+        --urgent: #6d1a36;
+        --warn: #e4572e;
+        --success: #33673b;
+        --soft: #e7eef6;
+        --amber-soft: #fde8de;
+        --red-soft: #f2dbe3;
+        --green-soft: #e3efe5;
+        --shadow: 0 1px 2px rgba(8, 61, 119, 0.06), 0 12px 30px rgba(8, 61, 119, 0.08);
+        --shadow-soft: 0 1px 3px rgba(8, 61, 119, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(180deg, rgba(8, 61, 119, 0.1), rgba(229, 227, 215, 0) 240px),
+          var(--bg);
+        color: var(--ink);
+        font-family: Arial, "Malgun Gothic", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 14px;
+        align-items: center;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 254, 250, 0.94);
+        backdrop-filter: blur(12px);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: 0;
+      }
+
+      h1::after {
+        content: "LIVE";
+        display: inline-flex;
+        margin-left: 10px;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: var(--wine);
+        color: #fffefa;
+        font-size: 11px;
+        vertical-align: middle;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .quickbar {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .quickbar button {
+        height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(255, 254, 250, 0.84);
+        color: #334455;
+        font-size: 12px;
+      }
+
+      .quickbar button.active {
+        border-color: var(--accent);
+        background: var(--navy);
+        color: #fffefa;
+      }
+
+      .live-status {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .presetbar {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .presetbar button {
+        height: 28px;
+        padding: 0 9px;
+        border-color: rgba(8, 61, 119, 0.18);
+        background: var(--soft);
+        color: var(--accent-ink);
+        font-size: 12px;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fffefa;
+        color: var(--ink);
+        font-size: 14px;
+        font-family: inherit;
+      }
+
+      input,
+      select,
+      button {
+        height: 38px;
+      }
+
+      input {
+        width: min(300px, 40vw);
+        padding: 0 10px;
+      }
+
+      select {
+        padding: 0 8px;
+      }
+
+      textarea {
+        min-height: 72px;
+        padding: 8px;
+        resize: vertical;
+      }
+
+      button {
+        padding: 0 12px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease, transform 120ms ease;
+      }
+
+      button:hover {
+        border-color: var(--line-strong);
+        box-shadow: var(--shadow-soft);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fffefa;
+      }
+
+      button.danger {
+        border-color: var(--urgent);
+        color: var(--urgent);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 300px minmax(440px, 1fr) 360px;
+        gap: 14px;
+        padding: 14px;
+      }
+
+      .panel,
+      article {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .panel {
+        overflow: hidden;
+      }
+
+      .panel h2 {
+        margin: 0;
+        padding: 13px;
+        border-bottom: 1px solid var(--line);
+        font-size: 15px;
+        background: linear-gradient(90deg, #f7f7f1, #edf2f7);
+      }
+
+      .stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .side-body {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+      }
+
+      .stat {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px;
+        background: #eef4ef;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #244a2b;
+      }
+
+      .stat.warning {
+        background: var(--amber-soft);
+        color: #8f331c;
+      }
+
+      .stat.danger {
+        background: var(--red-soft);
+        color: var(--wine);
+      }
+
+      .run,
+      .cluster {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 8px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .failed {
+        color: var(--warn);
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .detail-panel {
+        position: sticky;
+        top: 16px;
+        align-self: start;
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+      }
+
+      article {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border-left: 4px solid transparent;
+      }
+
+      article.read {
+        opacity: 0.68;
+      }
+
+      article.selected {
+        border-color: rgba(8, 61, 119, 0.35);
+        box-shadow: 0 0 0 2px rgba(8, 61, 119, 0.08), var(--shadow-soft);
+      }
+
+      article[data-priority="high"] {
+        border-left-color: var(--urgent);
+      }
+
+      article[data-priority="medium"] {
+        border-left-color: var(--warn);
+      }
+
+      article h3 {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.35;
+        letter-spacing: 0;
+      }
+
+      article a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      article a:hover {
+        color: var(--accent);
+        text-decoration: underline;
+      }
+
+      .meta,
+      .tags,
+      .actions,
+      .workflow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        align-items: center;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .tag {
+        padding: 4px 7px;
+        border-radius: 999px;
+        background: var(--stone);
+        color: #314052;
+        font-size: 12px;
+      }
+
+      .score {
+        color: var(--urgent);
+        font-weight: 700;
+      }
+
+      .workflow select,
+      .workflow input {
+        width: 150px;
+      }
+
+      .note {
+        display: grid;
+        gap: 8px;
+      }
+
+      .assist {
+        white-space: pre-wrap;
+        border-left: 3px solid var(--accent);
+        padding: 10px 12px;
+        background: var(--soft);
+        color: #17324e;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .summary {
+        color: #3f4b58;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .empty {
+        padding: 20px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .toast {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        max-width: min(420px, calc(100vw - 32px));
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        color: var(--ink);
+        font-size: 14px;
+        z-index: 50;
+      }
+
+      .status-pill {
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: var(--stone);
+        color: #34404e;
+      }
+
+      .status-pill.review {
+        background: var(--amber-soft);
+        color: var(--warn);
+      }
+
+      .status-pill.ready {
+        background: var(--green-soft);
+        color: var(--success);
+      }
+
+      .status-pill.new {
+        background: var(--wine);
+        color: #fffefa;
+      }
+
+      .category-pill {
+        border: 1px solid rgba(8, 61, 119, 0.16);
+        background: #eef4fb;
+        color: var(--accent-ink);
+      }
+
+      .category-pill.disaster,
+      .category-pill.weather {
+        border-color: rgba(228, 87, 46, 0.28);
+        background: #fde8de;
+        color: #8f331c;
+      }
+
+      .category-pill.fire,
+      .category-pill.police {
+        border-color: rgba(109, 26, 54, 0.25);
+        background: #f2dbe3;
+        color: var(--wine);
+      }
+
+      .category-pill.government,
+      .category-pill.health {
+        border-color: rgba(51, 103, 59, 0.28);
+        background: #e3efe5;
+        color: var(--green);
+      }
+
+      .urgent-rail {
+        display: grid;
+        gap: 8px;
+      }
+
+      .urgent-item {
+        padding: 10px;
+        border: 1px solid rgba(109, 26, 54, 0.22);
+        border-left: 4px solid var(--wine);
+        border-radius: 8px;
+        background: #fff8f9;
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(180px, 1fr));
+        gap: 10px;
+        align-items: start;
+      }
+
+      .board-column {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      .board-column h3 {
+        margin: 0;
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel-2);
+        font-size: 14px;
+      }
+
+      .board-card {
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .quality-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 8px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .quality-row strong {
+        min-width: 0;
+      }
+
+      @media (max-width: 980px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        .board {
+          grid-template-columns: 1fr;
+        }
+
+        .toolbar {
+          justify-content: stretch;
+        }
+
+        input,
+        select,
+        button {
+          flex: 1 1 150px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Newsroom Monitor</h1>
+      <div class="toolbar">
+        <input id="q" placeholder="검색어" />
+        <select id="source"></select>
+        <select id="status">
+          <option value="">전체 상태</option>
+          <option value="new">신규</option>
+          <option value="watching">확인중</option>
+          <option value="ready">방송 후보</option>
+          <option value="done">확인완료</option>
+          <option value="hold">사용주의</option>
+        </select>
+        <select id="mode">
+          <option value="latest">최신</option>
+          <option value="priority">중요</option>
+          <option value="alerts">알림</option>
+          <option value="board">보드</option>
+          <option value="admin">관리</option>
+        </select>
+        <button class="primary" id="search">조회</button>
+      </div>
+      <div class="quickbar" id="quickbar">
+        <button data-category="" class="active">전체</button>
+        <button data-category="disaster">재난</button>
+        <button data-category="fire">소방</button>
+        <button data-category="police">경찰</button>
+        <button data-category="weather">기상</button>
+        <button data-category="health">보건</button>
+        <button data-category="government">정부</button>
+        <button data-category="news">뉴스</button>
+        <span class="live-status" id="liveStatus">자동 갱신 준비</span>
+      </div>
+      <div class="presetbar" id="presetbar">
+        <button data-query="화재">화재</button>
+        <button data-query="침수">침수</button>
+        <button data-query="교통사고">교통사고</button>
+        <button data-query="실종">실종</button>
+        <button data-query="기상특보">기상특보</button>
+        <button data-query="감염병">감염병</button>
+      </div>
+    </header>
+    <main>
+      <aside class="stack">
+        <section class="panel">
+          <h2>긴급 상단</h2>
+          <div class="side-body urgent-rail" id="urgentRail"></div>
+        </section>
+        <section class="panel">
+          <h2>수집 상태</h2>
+          <div class="side-body" id="stats"></div>
+        </section>
+        <section class="panel">
+          <h2>출처 경고</h2>
+          <div class="side-body" id="sourceWarnings"></div>
+        </section>
+        <section class="panel">
+          <h2>운영</h2>
+          <div class="side-body">
+            <button id="exportCsv">CSV 내보내기</button>
+            <button id="exportCue">큐시트 내보내기</button>
+            <button id="backupDb">DB 백업</button>
+            <button id="rebuildClusters">이슈 재계산</button>
+            <button id="validateConfig">설정 검사</button>
+          </div>
+        </section>
+        <section class="panel">
+          <h2>백업 상태</h2>
+          <div class="side-body" id="opsStatus"></div>
+        </section>
+        <section class="panel">
+          <h2>이슈 묶음</h2>
+          <div class="side-body" id="clusters"></div>
+        </section>
+        <section class="panel">
+          <h2>알림 로그</h2>
+          <div class="side-body" id="alertEvents"></div>
+        </section>
+        <section class="panel">
+          <h2>최근 실행</h2>
+          <div class="side-body" id="runs"></div>
+        </section>
+        <section class="panel">
+          <h2>출처 품질</h2>
+          <div class="side-body" id="sourceQuality"></div>
+        </section>
+      </aside>
+      <section class="list" id="articles"></section>
+      <aside class="panel detail-panel">
+        <h2>상세</h2>
+        <div class="side-body" id="detailPanel">
+          <div class="empty">기사를 선택하면 상세 정보가 표시됩니다.</div>
+        </div>
+      </aside>
+    </main>
+    <script>
+      const articlesEl = document.querySelector("#articles");
+      const runsEl = document.querySelector("#runs");
+      const statsEl = document.querySelector("#stats");
+      const clustersEl = document.querySelector("#clusters");
+      const alertEventsEl = document.querySelector("#alertEvents");
+      const detailPanelEl = document.querySelector("#detailPanel");
+      const sourceEl = document.querySelector("#source");
+      const urgentRailEl = document.querySelector("#urgentRail");
+      const sourceWarningsEl = document.querySelector("#sourceWarnings");
+      const opsStatusEl = document.querySelector("#opsStatus");
+      const sourceQualityEl = document.querySelector("#sourceQuality");
+      const liveStatusEl = document.querySelector("#liveStatus");
+      const categoryButtons = Array.from(document.querySelectorAll("#quickbar button"));
+      const readKey = "newsroom-read-article-ids";
+      let activeCategory = "";
+      let toastTimer = undefined;
+      let lastArticleCount = undefined;
+      let selectedArticleId = undefined;
+
+      function showToast(message) {
+        let toast = document.querySelector(".toast");
+        if (!toast) {
+          toast = document.createElement("div");
+          toast.className = "toast";
+          document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.remove(), 4200);
+      }
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || `HTTP ${response.status}`);
+        }
+        return response.json();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function parseJsonList(value) {
+        if (!value) return [];
+        try {
+          return JSON.parse(value);
+        } catch {
+          return [];
+        }
+      }
+
+      function readIds() {
+        try {
+          return new Set(JSON.parse(localStorage.getItem(readKey) || "[]"));
+        } catch {
+          return new Set();
+        }
+      }
+
+      function markRead(id) {
+        const ids = Array.from(readIds());
+        const value = String(id);
+        if (!ids.includes(value)) ids.unshift(value);
+        localStorage.setItem(readKey, JSON.stringify(ids.slice(0, 1200)));
+        const article = articlesEl.querySelector(`article[data-id="${CSS.escape(value)}"]`);
+        if (article) {
+          article.classList.add("read");
+          article.querySelector(".status-pill.new")?.remove();
+        }
+      }
+
+      function formatBytes(value) {
+        const size = Number(value || 0);
+        if (size > 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
+        if (size > 1024) return `${(size / 1024).toFixed(1)} KB`;
+        return `${size} B`;
+      }
+
+      function articleTemplate(item) {
+        const score = Number(item.importance_score || 0);
+        const priority = score >= 5 ? "high" : score >= 3 ? "medium" : "normal";
+        const read = readIds().has(String(item.id));
+        const tags = parseJsonList(item.keywords)
+          .slice(0, 8)
+          .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+          .join("");
+        const note = item.desk_notes || "";
+        const assist = item.ai_summary
+          ? `<div class="assist">${escapeHtml(item.ai_summary)}\n\n${escapeHtml(item.check_points || "")}</div>`
+          : "";
+        return `
+          <article data-id="${item.id}" data-priority="${priority}" class="${read ? "read" : ""} ${String(item.id) === String(selectedArticleId) ? "selected" : ""}">
+            <h3><a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${escapeHtml(item.title)}</a></h3>
+            <div class="meta">
+              ${read ? "" : '<span class="status-pill new">NEW</span>'}
+              <span>${escapeHtml(item.source_name)}</span>
+              <span class="status-pill category-pill ${escapeHtml(item.source_category || "")}">${escapeHtml(categoryLabel(item.source_category))}</span>
+              <span>${escapeHtml(item.published_at || item.collected_at || "")}</span>
+              <span class="score">score ${score.toFixed(1)}</span>
+              <span class="status-pill ${item.verification_status === "needs_review" ? "review" : ""}">${escapeHtml(item.verification_status)}</span>
+              <span class="status-pill ${item.newsroom_status === "ready" ? "ready" : ""}">${escapeHtml(item.assignee || "담당자 없음")}</span>
+            </div>
+            <div class="tags">${tags}</div>
+            <div class="workflow">
+              <select data-field="newsroom_status">
+                ${statusOption("new", "신규", item.newsroom_status)}
+                ${statusOption("watching", "확인중", item.newsroom_status)}
+                ${statusOption("ready", "방송 후보", item.newsroom_status)}
+                ${statusOption("done", "확인완료", item.newsroom_status)}
+                ${statusOption("hold", "사용주의", item.newsroom_status)}
+              </select>
+              <select data-field="verification_status">
+                ${statusOption("unchecked", "미확인", item.verification_status)}
+                ${statusOption("needs_review", "확인 필요", item.verification_status)}
+                ${statusOption("checking", "확인중", item.verification_status)}
+                ${statusOption("verified", "확인완료", item.verification_status)}
+                ${statusOption("caution", "사용주의", item.verification_status)}
+              </select>
+              <input data-field="assignee" placeholder="담당자" value="${escapeHtml(item.assignee || "")}" />
+              <button data-action="save">저장</button>
+              <button data-action="assist">AI 보조</button>
+              <button data-action="enrich">상세 수집</button>
+              <button data-action="detail">상세</button>
+            </div>
+            <div class="note">
+              <textarea data-field="desk_notes" placeholder="데스크 메모">${escapeHtml(note)}</textarea>
+              ${assist}
+            </div>
+          </article>
+        `;
+      }
+
+      function statusOption(value, label, selected) {
+        return `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`;
+      }
+
+      function categoryLabel(value) {
+        return {
+          disaster: "재난",
+          fire: "소방",
+          police: "경찰",
+          weather: "기상",
+          health: "보건",
+          government: "정부",
+          news: "뉴스",
+        }[value] || value || "기타";
+      }
+
+      async function loadArticles() {
+        const q = document.querySelector("#q").value.trim();
+        const mode = document.querySelector("#mode").value;
+        const source = sourceEl.value;
+        const status = document.querySelector("#status").value;
+        const params = new URLSearchParams({ limit: "50" });
+        if (mode === "admin") {
+          await loadAdmin();
+          return;
+        }
+        if (mode === "board") {
+          await loadBoard();
+          return;
+        }
+        if (q) params.set("q", q);
+        if (source) params.set("source_name", source);
+        if (status) params.set("newsroom_status", status);
+        if (activeCategory) params.set("source_category", activeCategory);
+        const url =
+          mode === "priority"
+            ? `/priority?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
+            : mode === "alerts"
+              ? `/alerts?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
+              : `/articles?${params.toString()}`;
+        const items = await fetchJson(url);
+        articlesEl.innerHTML = items.length
+          ? items.map(articleTemplate).join("")
+          : '<div class="empty">표시할 기사가 없습니다.</div>';
+        const unread = items.filter((item) => !readIds().has(String(item.id))).length;
+        if (lastArticleCount !== undefined && items.length > lastArticleCount) {
+          showToast(`새 기사 ${items.length - lastArticleCount}건이 목록에 표시됐습니다.`);
+        }
+        lastArticleCount = items.length;
+        liveStatusEl.textContent = `자동 갱신 중 · 미확인 ${unread}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
+      }
+
+      async function loadBoard() {
+        const statuses = [
+          ["new", "신규"],
+          ["watching", "확인중"],
+          ["ready", "방송 후보"],
+          ["done", "확인완료"],
+          ["hold", "사용주의"],
+        ];
+        const columns = await Promise.all(
+          statuses.map(async ([value, label]) => {
+            const params = new URLSearchParams({ limit: "20", newsroom_status: value });
+            if (activeCategory) params.set("source_category", activeCategory);
+            const items = await fetchJson(`/articles?${params.toString()}`);
+            return { value, label, items };
+          }),
+        );
+        articlesEl.innerHTML = `
+          <div class="board">
+            ${columns
+              .map(
+                (column) => `
+                  <section class="board-column">
+                    <h3>${escapeHtml(column.label)} · ${column.items.length}</h3>
+                    ${column.items
+                      .map(
+                        (item) => `
+                          <div class="board-card" data-id="${item.id}">
+                            <strong>${escapeHtml(item.title)}</strong><br />
+                            ${escapeHtml(categoryLabel(item.source_category))} · score ${Number(item.importance_score || 0).toFixed(1)}
+                          </div>
+                        `,
+                      )
+                      .join("") || '<div class="empty">없음</div>'}
+                  </section>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+        liveStatusEl.textContent = `보드 갱신 · ${new Date().toLocaleTimeString("ko-KR")}`;
+      }
+
+      async function loadAdmin() {
+        const sources = await fetchJson("/sources");
+        const validation = await fetchJson("/admin/validate");
+        const backups = await fetchJson("/maintenance/backups");
+        articlesEl.innerHTML = `
+          <article>
+            <h3>설정 상태</h3>
+            <div class="summary">${validation.ok ? "설정 정상" : validation.errors.map(escapeHtml).join("<br />")}</div>
+          </article>
+          <article>
+            <h3>출처 관리</h3>
+            <div class="stack">
+              ${sources
+                .map(
+                  (source) => `
+                    <div class="stat">
+                      <span>${escapeHtml(source.name)}</span>
+                      <span>
+                        <button data-source-id="${source.id}" data-source-enabled="${source.enabled ? 0 : 1}">
+                          ${source.enabled ? "비활성화" : "활성화"}
+                        </button>
+                        ${source.crawl_interval_seconds}s
+                      </span>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          </article>
+          <article>
+            <h3>백업 목록</h3>
+            <div class="stack">
+              ${backups.map((backup) => `<div class="summary">${escapeHtml(backup.name)} · ${backup.size} bytes</div>`).join("") || "백업 없음"}
+            </div>
+          </article>
+        `;
+      }
+
+      async function saveWorkflow(article) {
+        const id = article.dataset.id;
+        const payload = {};
+        article.querySelectorAll("[data-field]").forEach((field) => {
+          payload[field.dataset.field] = field.value;
+        });
+        await fetchJson(`/articles/${id}/workflow`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        await loadArticles();
+        await loadStats();
+      }
+
+      async function buildAssist(article) {
+        const id = article.dataset.id;
+        await fetchJson(`/articles/${id}/ai-assist`, { method: "POST" });
+        await loadArticles();
+      }
+
+      async function enrichArticle(article) {
+        const id = article.dataset.id;
+        await fetchJson(`/articles/${id}/enrich`, { method: "POST" });
+        await loadArticles();
+        await showDetail(id);
+      }
+
+      async function showDetail(id) {
+        const item = await fetchJson(`/articles/${id}`);
+        selectedArticleId = id;
+        markRead(id);
+        document.querySelectorAll("article.selected").forEach((article) => article.classList.remove("selected"));
+        articlesEl.querySelector(`article[data-id="${CSS.escape(String(id))}"]`)?.classList.add("selected");
+        const images = parseJsonList(item.image_urls).slice(0, 4);
+        const videos = parseJsonList(item.video_urls).slice(0, 4);
+        detailPanelEl.innerHTML = `
+          <div class="stack">
+            <strong>${escapeHtml(item.title)}</strong>
+            <div class="meta">${escapeHtml(item.source_name)} · score ${Number(item.importance_score || 0).toFixed(1)}</div>
+            <div class="summary">${escapeHtml(item.body_text || item.summary || "상세 본문이 아직 없습니다.")}</div>
+            <div class="tags">${parseJsonList(item.keywords).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
+            <div class="summary"><strong>이미지</strong><br />${images.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("<br />") || "-"}</div>
+            <div class="summary"><strong>영상</strong><br />${videos.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(url)}</a>`).join("<br />") || "-"}</div>
+            <div class="summary"><strong>AI 보조</strong><br />${escapeHtml(item.ai_summary || "AI 보조 버튼으로 생성할 수 있습니다.")}</div>
+          </div>
+        `;
+      }
+
+      async function loadUrgentRail() {
+        const params = new URLSearchParams({ limit: "5", threshold: "4.5" });
+        if (activeCategory) params.set("source_category", activeCategory);
+        const items = await fetchJson(`/alerts?${params.toString()}`);
+        urgentRailEl.innerHTML = items.length
+          ? items
+              .slice(0, 5)
+              .map(
+                (item) => `
+                  <div class="urgent-item" data-id="${item.id}">
+                    <strong>${escapeHtml(item.title)}</strong><br />
+                    ${escapeHtml(categoryLabel(item.source_category))} · ${escapeHtml(item.source_name)} · score ${Number(item.importance_score || 0).toFixed(1)}
+                  </div>
+                `,
+              )
+              .join("")
+          : '<div class="empty">긴급 후보가 없습니다.</div>';
+      }
+
+      async function loadOperations() {
+        const ops = await fetchJson("/operations/overview");
+        const latest = ops.latest_backup;
+        opsStatusEl.innerHTML = `
+          <div class="stat"><span>DB 크기</span><strong>${formatBytes(ops.database_size)}</strong></div>
+          <div class="stat"><span>백업 수</span><strong>${ops.backup_count} / ${ops.max_backup_count}</strong></div>
+          <div class="stat"><span>마지막 백업</span><strong>${escapeHtml(latest?.modified_at || "-")}</strong></div>
+        `;
+      }
+
+      async function loadSourceQuality() {
+        const quality = await fetchJson("/sources/quality");
+        const warnings = quality.filter((source) => source.enabled && source.last_status === "failed");
+        sourceWarningsEl.innerHTML = warnings.length
+          ? warnings
+              .slice(0, 6)
+              .map(
+                (source) => `
+                  <div class="stat danger">
+                    <span>${escapeHtml(source.name)}</span>
+                    <strong>점검</strong>
+                  </div>
+                  <div class="summary">${escapeHtml(source.last_error_message || "최근 수집 실패")}</div>
+                `,
+              )
+              .join("")
+          : '<div class="empty">실패한 출처가 없습니다.</div>';
+        sourceQualityEl.innerHTML = quality
+          .slice(0, 10)
+          .map((source) => {
+            const rate = source.success_rate === null ? "-" : `${source.success_rate}%`;
+            const rowClass = source.last_status === "failed" ? "quality-row failed" : "quality-row";
+            return `
+              <div class="${rowClass}">
+                <strong>${escapeHtml(source.name)}</strong>
+                <span>${rate}</span>
+                <span>${escapeHtml(categoryLabel(source.source_category))} · 기사 ${source.article_count}</span>
+                <span>${escapeHtml(source.last_status || "대기")}</span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function loadRuns() {
+        const runs = await fetchJson("/crawl-runs?limit=8");
+        runsEl.innerHTML = runs
+          .map(
+            (run) => `
+              <div class="run ${run.status === "failed" ? "failed" : ""}">
+                <strong>${escapeHtml(run.source_name)}</strong><br />
+                ${escapeHtml(run.status)} · ${run.new_article_count} · ${escapeHtml(run.started_at)}
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      async function loadSources() {
+        const sources = await fetchJson("/sources");
+        sourceEl.innerHTML =
+          '<option value="">전체 출처</option>' +
+          sources
+            .filter((source) => source.enabled)
+            .map((source) => `<option value="${escapeHtml(source.name)}">${escapeHtml(source.name)}</option>`)
+            .join("");
+        return sources;
+      }
+
+      async function loadClusters() {
+        const clusters = await fetchJson("/clusters?limit=8");
+        clustersEl.innerHTML = clusters
+          .map(
+            (cluster) => `
+              <div class="cluster">
+                <strong>${escapeHtml(cluster.sample_title)}</strong><br />
+                기사 ${cluster.article_count} · 출처 ${cluster.source_count} · score ${Number(cluster.max_importance || 0).toFixed(1)}
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      async function loadAlertEvents() {
+        const events = await fetchJson("/alert-events?limit=8&acknowledged=false");
+        alertEventsEl.innerHTML = events.length
+          ? events
+              .map(
+                (event) => `
+                  <div class="cluster">
+                    <strong>${escapeHtml(event.title)}</strong><br />
+                    ${escapeHtml(event.source_name)} · score ${Number(event.importance_score || 0).toFixed(1)}<br />
+                    ${escapeHtml(event.reason)}
+                  </div>
+                `,
+              )
+              .join("")
+          : '<div class="empty">새 알림이 없습니다.</div>';
+      }
+
+      async function loadStats() {
+        const stats = await fetchJson("/stats");
+        const counts = Object.fromEntries(stats.categories.map((row) => [row.source_category || "", row.count]));
+        const total = stats.article_count || 0;
+        categoryButtons.forEach((button) => {
+          const category = button.dataset.category;
+          const label = categoryLabel(category);
+          const count = category ? counts[category] || 0 : total;
+          button.textContent = `${label === "기타" ? "전체" : label} ${count}`;
+        });
+        statsEl.innerHTML = `
+          <div class="stat"><span>전체 기사</span><strong>${stats.article_count}</strong></div>
+          <div class="stat"><span>활성 출처</span><strong>${stats.source_count}</strong></div>
+          <div class="stat"><span>새 알림</span><strong>${stats.alert_count}</strong></div>
+          <div class="stat"><span>방송 후보</span><strong>${stats.ready_count}</strong></div>
+          <div class="stat"><span>상세 수집</span><strong>${stats.with_body_count}</strong></div>
+          <div class="stat"><span>최근 수집</span><strong>${escapeHtml(stats.last_collected_at || "-")}</strong></div>
+          ${stats.categories
+            .slice(0, 4)
+            .map((row) => `<div class="stat"><span>${escapeHtml(categoryLabel(row.source_category))}</span><strong>${row.count}</strong></div>`)
+            .join("")}
+        `;
+      }
+
+      document.querySelector("#search").addEventListener("click", loadArticles);
+      document.querySelector("#q").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") loadArticles();
+      });
+      document.querySelector("#presetbar").addEventListener("click", (event) => {
+        const query = event.target.dataset?.query;
+        if (!query) return;
+        document.querySelector("#q").value = query;
+        document.querySelector("#mode").value = "latest";
+        loadArticles().catch((error) => showToast(error.message));
+      });
+      document.querySelector("#quickbar").addEventListener("click", (event) => {
+        if (!event.target.dataset) return;
+        if (event.target.dataset.category === undefined) return;
+        activeCategory = event.target.dataset.category;
+        document.querySelectorAll("#quickbar button").forEach((button) => button.classList.remove("active"));
+        event.target.classList.add("active");
+        refreshDashboard().catch((error) => showToast(error.message));
+      });
+      document.querySelector("#exportCsv").addEventListener("click", () => {
+        const params = new URLSearchParams({ limit: "1000" });
+        if (activeCategory) params.set("source_category", activeCategory);
+        window.open(`/exports/articles.csv?${params.toString()}`, "_blank");
+      });
+      document.querySelector("#exportCue").addEventListener("click", () => {
+        const params = new URLSearchParams({ limit: "100", newsroom_status: "ready" });
+        if (activeCategory) params.set("source_category", activeCategory);
+        window.open(`/exports/cuesheet.txt?${params.toString()}`, "_blank");
+      });
+      document.querySelector("#backupDb").addEventListener("click", async () => {
+        const result = await fetchJson("/maintenance/backup", { method: "POST" });
+        showToast(`백업 완료: ${result.backup_path}`);
+        loadStats();
+      });
+      document.querySelector("#rebuildClusters").addEventListener("click", async () => {
+        await fetchJson("/clusters/rebuild?limit=1000", { method: "POST" });
+        showToast("이슈 묶음을 재계산했습니다.");
+        await loadClusters();
+      });
+      document.querySelector("#validateConfig").addEventListener("click", async () => {
+        const result = await fetchJson("/admin/validate");
+        showToast(result.ok ? "설정 정상" : result.errors.join("\\n"));
+      });
+      urgentRailEl.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-id]");
+        if (item) showDetail(item.dataset.id).catch((error) => showToast(error.message));
+      });
+      articlesEl.addEventListener("click", (event) => {
+        if (event.target.dataset.sourceId) {
+          fetchJson(`/sources/${event.target.dataset.sourceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ enabled: event.target.dataset.sourceEnabled === "1" }),
+          }).then(loadAdmin).catch((error) => showToast(error.message));
+          return;
+        }
+        const boardCard = event.target.closest(".board-card");
+        if (boardCard) {
+          showDetail(boardCard.dataset.id).catch((error) => showToast(error.message));
+          return;
+        }
+        const action = event.target.dataset.action;
+        const article = event.target.closest("article");
+        if (!action && event.target.closest("input, textarea, select, button, a")) return;
+        if (!action && article) {
+          showDetail(article.dataset.id).catch((error) => showToast(error.message));
+          return;
+        }
+        if (!action || !article) return;
+        if (action === "save") saveWorkflow(article);
+        if (action === "assist") buildAssist(article);
+        if (action === "enrich") enrichArticle(article);
+        if (action === "detail") showDetail(article.dataset.id);
+      });
+
+      async function refreshDashboard() {
+        await Promise.all([
+          loadStats(),
+          loadClusters(),
+          loadAlertEvents(),
+          loadRuns(),
+          loadUrgentRail(),
+          loadOperations(),
+          loadSourceQuality(),
+          loadArticles(),
+        ]);
+      }
+
+      loadSources()
+        .then(refreshDashboard)
+        .catch((error) => showToast(error.message));
+
+      setInterval(() => {
+        refreshDashboard().catch((error) => showToast(error.message));
+      }, 60000);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+data/
+backups/
+dist/
+logs/
+.pytest_cache/
+pytest-cache-files-*/
+.env
+/crawling

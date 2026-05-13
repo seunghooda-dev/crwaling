@@ -1,0 +1,58 @@
+[
+  {
+    "name": "SBS News Latest",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=01&plink=RSSREADER",
+    "enabled": true,
+    "crawl_interval_seconds": 300
+  },
+  {
+    "name": "Korea Policy Press Releases",
+    "source_type": "rss",
+    "source_category": "government",
+    "url": "https://www.korea.kr/rss/pressrelease.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 600
+  },
+  {
+    "name": "National Fire Agency Press",
+    "source_type": "html",
+    "source_category": "fire",
+    "url": "https://nfa.go.kr/nfa/news/pressrelease/press/",
+    "enabled": true,
+    "crawl_interval_seconds": 600
+  },
+  {
+    "name": "Korean National Police Press",
+    "source_type": "html",
+    "source_category": "police",
+    "url": "https://www.police.go.kr/user/bbs/BD_selectBbsList.do?q_bbsCode=1002",
+    "enabled": true,
+    "crawl_interval_seconds": 600
+  },
+  {
+    "name": "KMA Weather Alerts",
+    "source_type": "html",
+    "source_category": "weather",
+    "url": "https://www.weather.go.kr/w/weather/warning/status.do",
+    "enabled": true,
+    "crawl_interval_seconds": 300
+  },
+  {
+    "name": "Safe Korea Disaster Messages",
+    "source_type": "html",
+    "source_category": "disaster",
+    "url": "https://www.safekorea.go.kr/idsiSFK/neo/emp/er/emergency_erm.html",
+    "enabled": true,
+    "crawl_interval_seconds": 300
+  },
+  {
+    "name": "KDCA Press RSS",
+    "source_type": "rss",
+    "source_category": "health",
+    "url": "https://www.kdca.go.kr/bbs/kdca/41/rssList.do",
+    "enabled": true,
+    "crawl_interval_seconds": 900
+  }
+]
