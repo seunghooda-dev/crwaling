@@ -1624,11 +1624,30 @@
         `;
       }
 
-      document.querySelector("#search").addEventListener("click", () => {
+      function runSearch() {
+        const q = document.querySelector("#q").value.trim();
+        if (!q) {
+          sourceEl.value = "";
+          document.querySelector("#status").value = "";
+          document.querySelector("#period").value = "";
+          document.querySelector("#mode").value = "latest";
+          document.querySelector("#sort").value = "latest";
+          activeCategory = "";
+          document.querySelectorAll("#quickbar button").forEach((button) => {
+            button.classList.toggle("active", button.dataset.category === "");
+          });
+          document.querySelectorAll("#sourcebar button").forEach((button) => {
+            button.classList.toggle("active", button.dataset.sourceName === "");
+          });
+        }
         loadArticles().catch((error) => showToast(error.message));
+      }
+
+      document.querySelector("#search").addEventListener("click", () => {
+        runSearch();
       });
       document.querySelector("#q").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") loadArticles().catch((error) => showToast(error.message));
+        if (event.key === "Enter") runSearch();
       });
       document.querySelector("#period").addEventListener("change", () => {
         loadArticles().catch((error) => showToast(error.message));
