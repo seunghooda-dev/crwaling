@@ -147,7 +147,11 @@ def ensure_parent(path: Path) -> None:
 def connect() -> sqlite3.Connection:
     configure_logging()
     ensure_parent(settings.database_path)
-    conn = sqlite3.connect(settings.database_path, timeout=settings.sqlite_busy_timeout_ms / 1000)
+    conn = sqlite3.connect(
+        settings.database_path,
+        timeout=settings.sqlite_busy_timeout_ms / 1000,
+        check_same_thread=False,
+    )
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")

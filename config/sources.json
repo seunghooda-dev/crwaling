@@ -330,13 +330,13 @@
     "max_retries": 2
   },
   {
-    "name": "KMA Weather Alerts",
-    "source_type": "html",
+    "name": "KMA Press RSS",
+    "source_type": "rss",
     "source_category": "weather",
-    "url": "https://www.weather.go.kr/w/weather/warning/status.do",
+    "url": "http://www.kma.go.kr/servlet/NeoboardProcess?mode=rss&bid=press&url=http%3A%2F%2Fwww.kma.go.kr%2Fnotify%2Fpress%2Fkma_list.jsp",
     "enabled": true,
     "crawl_interval_seconds": 300,
-    "timeout_seconds": 22,
+    "timeout_seconds": 12,
     "max_retries": 2
   },
   {

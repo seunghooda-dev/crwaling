@@ -140,11 +140,21 @@ def _article_filters(
 
 
 def _article_time_sql() -> str:
-    return "COALESCE(datetime(published_at), datetime(collected_at), collected_at)"
+    return _article_local_time_sql()
 
 
 def _article_local_time_sql() -> str:
-    return f"datetime({_article_time_sql()}, '+9 hours')"
+    published_local = """
+        CASE
+            WHEN published_at IS NULL OR published_at = '' THEN NULL
+            WHEN instr(substr(published_at, 11), '+') > 0
+              OR instr(substr(published_at, 11), '-') > 0
+              OR upper(substr(published_at, -1)) = 'Z'
+            THEN datetime(published_at, '+9 hours')
+            ELSE datetime(published_at)
+        END
+    """
+    return f"COALESCE({published_local}, datetime(collected_at, '+9 hours'), collected_at)"
 
 
 def _article_order(sort: str | None) -> str:

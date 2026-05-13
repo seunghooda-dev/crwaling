@@ -63,11 +63,11 @@ class HtmlCrawler(Crawler):
         if "nfa.go.kr" in source.url:
             return "a[href*='mode=view'], a[href*='cntId=']"
         if "police.go.kr" in source.url:
-            return "a[href*='bbs'], a[href*='BD_selectBbs']"
+            return "table a[href*='BD_selectBbs.do'], tbody a[href*='BD_selectBbs.do']"
         if "mois.go.kr" in source.url:
             return "a[href*='bbsId'], a[href*='nttId']"
         if "weather.go.kr" in source.url:
-            return "a[href], td a[href]"
+            return "main a[href], #contents a[href]"
         if "news.kbs.co.kr" in source.url:
             return "a[href*='view.do?ncd=']"
         if "imnews.imbc.com" in source.url:
@@ -93,7 +93,22 @@ class HtmlCrawler(Crawler):
     def _is_candidate(self, source: Source, title: str, href: str | None) -> bool:
         if not title or not href or len(title) < 8:
             return False
-        bad_words = ("로그인", "회원가입", "사이트맵", "개인정보", "이메일", "바로가기", "메뉴", "검색")
+        bad_words = (
+            "로그인",
+            "회원가입",
+            "사이트맵",
+            "개인정보",
+            "이메일",
+            "바로가기",
+            "메뉴",
+            "검색",
+            "내비게이션",
+            "본문",
+            "푸터",
+            "자료실",
+            "사전정보",
+            "목록",
+        )
         if any(word in title for word in bad_words):
             return False
         if "imnews.imbc.com" in source.url:
@@ -104,6 +119,12 @@ class HtmlCrawler(Crawler):
             return "article" in href or "news_id=" in href
         if "news.kbs.co.kr" in source.url:
             return "view.do?ncd=" in href
+        if "weather.go.kr" in source.url:
+            return "/w/repositary/xml/wrn/" in href or ("special-report" in href and len(title) > 20)
+        if "police.go.kr" in source.url:
+            return "BD_selectBbs.do" in href and "q_bbscttSn=" in href
+        if "safekorea.go.kr" in source.url:
+            return "disasterMsg" in href or "emergency" in href or "detail" in href
         if "news.tvchosun.com" in source.url:
             return "/site/data/html_dir/" in href and href.endswith(".html")
         if "ichannela.com" in source.url:

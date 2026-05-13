@@ -27,13 +27,14 @@ from app.repository import (
     save_ai_assist,
     search_crawl_runs,
     scheduler_status,
+    set_app_state,
     update_article_checklist,
     update_article_workflow,
 )
 from app.services.ai_assist import build_ai_assist
 from app.services.backup_service import backup_database, list_backups, restore_database
 from app.services.cluster_service import rebuild_clusters
-from app.services.crawl_service import CrawlService
+from app.services.crawl_service import MANUAL_CRAWL_CANCEL_KEY, CrawlService
 from app.services.detail_service import enrich_article_details
 from app.services.export_service import articles_to_csv, articles_to_cuesheet
 from app.services.notification_service import notify_search_matches
@@ -185,18 +186,31 @@ def crawl_refresh(payload: CrawlRefreshRequest, conn=Depends(db_session)) -> dic
         conn,
         source_name=payload.source_name,
         source_category=payload.source_category,
+        cancel_key=MANUAL_CRAWL_CANCEL_KEY,
+        reset_cancel=True,
     )
     results = crawl_result["results"]
+    fetched_results = crawl_result["fetched_results"]
     notified_count = notify_search_matches(crawl_result["new_articles"], payload.q)
     elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
     return {
         "results": results,
+        "fetched_results": fetched_results,
         "source_count": len(results),
+        "fetched_article_count": sum(count for count in fetched_results.values() if count > 0),
         "new_article_count": sum(count for count in results.values() if count > 0),
         "search_match_notification_count": notified_count,
         "failed_source_count": sum(1 for count in results.values() if count < 0),
+        "canceled": bool(crawl_result.get("canceled")),
         "elapsed_ms": elapsed_ms,
     }
+
+
+@app.post("/crawl/cancel")
+def crawl_cancel(conn=Depends(db_session)) -> dict:
+    set_app_state(conn, MANUAL_CRAWL_CANCEL_KEY, "1")
+    conn.commit()
+    return {"cancel_requested": True}
 
 
 @app.get("/articles")

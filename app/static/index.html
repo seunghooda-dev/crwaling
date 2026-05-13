@@ -766,13 +766,13 @@
         </select>
         <input id="q" class="search-input" placeholder="검색어" />
         <select id="period">
+          <option value="">전체</option>
           <option value="1">24시간</option>
           <option value="3">3일</option>
           <option value="7">7일</option>
           <option value="today">오늘</option>
           <option value="yesterday">어제</option>
           <option value="custom">직접</option>
-          <option value="">전체</option>
         </select>
         <select id="mode">
           <option value="latest">최신</option>
@@ -947,11 +947,15 @@
       }
 
       async function refreshSourcesBeforeSearch() {
-        if (liveRefreshRunning) return null;
+        if (liveRefreshRunning) {
+          liveStatusEl.textContent = "수집 중지 요청 중";
+          await fetchJson("/crawl/cancel", { method: "POST" });
+          showToast("현재 수집을 중지 요청했습니다. 진행 중인 출처 응답 후 멈춥니다.");
+          return null;
+        }
         liveRefreshRunning = true;
-        searchButtonEl.disabled = true;
         const originalLabel = searchButtonEl.textContent;
-        searchButtonEl.textContent = "수집중";
+        searchButtonEl.textContent = "중지";
         const startedAt = performance.now();
         const payload = {};
         if (sourceEl.value) payload.source_name = sourceEl.value;
@@ -967,11 +971,12 @@
           const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
           const failedText = result.failed_source_count ? ` · 실패 ${result.failed_source_count}곳` : "";
           const notifyText = result.search_match_notification_count ? ` · 알림 ${result.search_match_notification_count}건` : "";
-          showToast(`실시간 수집 완료: ${result.source_count}곳 확인, 새 기사 ${result.new_article_count}건 (${seconds}초)${notifyText}${failedText}`);
+          const fetchedText = Number.isFinite(result.fetched_article_count) ? `, 확인 기사 ${result.fetched_article_count}건` : "";
+          const canceledText = result.canceled ? " · 중지됨" : "";
+          showToast(`실시간 수집 완료: ${result.source_count}곳 확인${fetchedText}, 새 기사 ${result.new_article_count}건 (${seconds}초)${notifyText}${failedText}${canceledText}`);
           return result;
         } finally {
           liveRefreshRunning = false;
-          searchButtonEl.disabled = false;
           searchButtonEl.textContent = originalLabel;
         }
       }
@@ -1769,18 +1774,8 @@
       function runSearch() {
         const q = document.querySelector("#q").value.trim();
         if (!q) {
-          sourceEl.value = "";
-          document.querySelector("#status").value = "";
-          document.querySelector("#period").value = "";
           document.querySelector("#mode").value = "latest";
           document.querySelector("#sort").value = "latest";
-          activeCategory = "";
-          document.querySelectorAll("#quickbar button").forEach((button) => {
-            button.classList.toggle("active", button.dataset.category === "");
-          });
-          document.querySelectorAll("#sourcebar button").forEach((button) => {
-            button.classList.toggle("active", button.dataset.sourceName === "");
-          });
         }
         loadArticles({ refreshFirst: true }).catch((error) => showToast(error.message));
       }
@@ -1792,6 +1787,11 @@
       }
 
       function toggleLiveSearch() {
+        if (liveRefreshRunning) {
+          fetchJson("/crawl/cancel", { method: "POST" })
+            .then(() => showToast("현재 수집을 중지 요청했습니다."))
+            .catch((error) => showToast(error.message));
+        }
         if (liveSearchTimer) {
           clearInterval(liveSearchTimer);
           liveSearchTimer = undefined;
