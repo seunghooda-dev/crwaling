@@ -10,10 +10,18 @@ from app.crawlers.safe_korea import SafeKoreaDisasterMessageCrawler
 from app.database import SCHEMA
 from app.content import clean_html_text, extract_media_urls
 from app.models import Article, Source, SourceType
-from app.repository import count_articles, list_articles, list_source_quality, scheduler_status, set_app_state
+from app.repository import (
+    count_articles,
+    list_articles,
+    list_region_counts,
+    list_source_quality,
+    scheduler_status,
+    set_app_state,
+)
 from app.services.ai_assist import build_ai_assist
 from app.services.notification_service import notify_search_matches
 from app.services.quality_service import enrich_article_quality
+from app.services.region_service import extract_regions
 from app.services.scoring import apply_newsroom_scoring
 from app.title_extractor import clean_title_text, split_title_summary
 
@@ -359,6 +367,35 @@ def test_quality_keeps_explicit_source_regions():
     enriched = enrich_article_quality(article)
     assert enriched.region_tags == ["경상북도 봉화군"]
     assert "no_region" not in enriched.quality_flags
+
+
+def test_region_extraction_avoids_false_positive_compound_words():
+    assert "부산" not in extract_regions("영농부산물 소각 금지 바랍니다.")
+    assert "부산" in extract_regions("부산시 해운대구 화재 발생")
+
+
+def test_region_group_filter_and_counts():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.executemany(
+        """
+        INSERT INTO articles (source_name, source_type, title, url, fingerprint, region_tags, published_at)
+        VALUES ('source', 'api', ?, ?, ?, ?, ?)
+        """,
+        [
+            ("김포 공장 화재", "https://capital", "capital", '["경기도 김포시"]', "2026-05-13T19:00:00+09:00"),
+            ("봉화 산불 안내", "https://yeongnam", "yeongnam", '["경상북도 봉화군"]', "2026-05-13T18:00:00+09:00"),
+        ],
+    )
+
+    rows = list_articles(conn, region_group="capital", sort="latest")
+    assert [row["title"] for row in rows] == ["김포 공장 화재"]
+    assert count_articles(conn, region_group="capital") == 1
+
+    counts = {row["region_group"]: row["count"] for row in list_region_counts(conn)}
+    assert counts["capital"] == 1
+    assert counts["yeongnam"] == 1
 
 
 def test_scheduler_status_includes_crawl_progress():

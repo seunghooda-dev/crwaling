@@ -3,6 +3,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from app.models import Article, Source
+from app.services.region_service import region_group_aliases, region_group_label, region_group_options
 
 
 def upsert_source(conn: sqlite3.Connection, source: Source) -> None:
@@ -103,6 +104,7 @@ def _article_filters(
     collected_within_days: int | None = None,
     collected_from: str | None = None,
     collected_to: str | None = None,
+    region_group: str | None = None,
 ) -> tuple[list[str], list[object]]:
     where = []
     params: list[object] = []
@@ -123,6 +125,11 @@ def _article_filters(
     if source_category:
         where.append("source_category = ?")
         params.append(source_category)
+    if region_group:
+        aliases = region_group_aliases(region_group)
+        if aliases:
+            where.append("(" + " OR ".join("region_tags LIKE ?" for _ in aliases) + ")")
+            params.extend([f"%{alias}%" for alias in aliases])
     if assignee:
         where.append("assignee = ?")
         params.append(assignee)
@@ -182,6 +189,7 @@ def list_articles(
     collected_within_days: int | None = None,
     collected_from: str | None = None,
     collected_to: str | None = None,
+    region_group: str | None = None,
     sort: str | None = None,
 ) -> list[dict]:
     where, params = _article_filters(
@@ -194,6 +202,7 @@ def list_articles(
         collected_within_days=collected_within_days,
         collected_from=collected_from,
         collected_to=collected_to,
+        region_group=region_group,
     )
 
     sql = """
@@ -230,6 +239,7 @@ def count_articles(
     collected_within_days: int | None = None,
     collected_from: str | None = None,
     collected_to: str | None = None,
+    region_group: str | None = None,
 ) -> int:
     where, params = _article_filters(
         source_name=source_name,
@@ -241,6 +251,7 @@ def count_articles(
         collected_within_days=collected_within_days,
         collected_from=collected_from,
         collected_to=collected_to,
+        region_group=region_group,
     )
     sql = "SELECT COUNT(1) FROM articles"
     if where:
@@ -248,51 +259,43 @@ def count_articles(
     return int(conn.execute(sql, params).fetchone()[0])
 
 
-def list_priority_articles(conn: sqlite3.Connection, limit: int = 50, source_category: str | None = None) -> list[dict]:
+def list_priority_articles(
+    conn: sqlite3.Connection,
+    limit: int = 50,
+    source_category: str | None = None,
+    region_group: str | None = None,
+) -> list[dict]:
+    where = ["importance_score > 0"]
+    params: list[object] = []
     if source_category:
-        rows = conn.execute(
-            """
-            SELECT
-                articles.*,
-                (
-                    SELECT COUNT(DISTINCT peer.source_name)
-                    FROM articles peer
-                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
-                ) AS cluster_source_count,
-                (
-                    SELECT COUNT(1)
-                    FROM articles peer
-                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
-                ) AS cluster_article_count
-            FROM articles
-            WHERE importance_score > 0 AND source_category = ?
-            ORDER BY importance_score DESC, collected_at DESC
-            LIMIT ?
-            """,
-            (source_category, limit),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            """
-            SELECT
-                articles.*,
-                (
-                    SELECT COUNT(DISTINCT peer.source_name)
-                    FROM articles peer
-                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
-                ) AS cluster_source_count,
-                (
-                    SELECT COUNT(1)
-                    FROM articles peer
-                    WHERE peer.duplicate_group_id = articles.duplicate_group_id
-                ) AS cluster_article_count
-            FROM articles
-            WHERE importance_score > 0
-            ORDER BY importance_score DESC, collected_at DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+        where.append("source_category = ?")
+        params.append(source_category)
+    aliases = region_group_aliases(region_group)
+    if aliases:
+        where.append("(" + " OR ".join("region_tags LIKE ?" for _ in aliases) + ")")
+        params.extend([f"%{alias}%" for alias in aliases])
+    params.append(limit)
+    rows = conn.execute(
+        f"""
+        SELECT
+            articles.*,
+            (
+                SELECT COUNT(DISTINCT peer.source_name)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_source_count,
+            (
+                SELECT COUNT(1)
+                FROM articles peer
+                WHERE peer.duplicate_group_id = articles.duplicate_group_id
+            ) AS cluster_article_count
+        FROM articles
+        WHERE {" AND ".join(where)}
+        ORDER BY importance_score DESC, {_article_time_sql()} DESC, id DESC
+        LIMIT ?
+        """,
+        params,
+    ).fetchall()
     return [dict(row) for row in rows]
 
 
@@ -301,12 +304,19 @@ def list_alert_articles(
     limit: int = 50,
     threshold: float = 4.0,
     source_category: str | None = None,
+    region_group: str | None = None,
 ) -> list[dict]:
-    category_sql = "AND source_category = ?" if source_category else ""
     params: list[object] = [threshold]
+    filters = []
     if source_category:
+        filters.append("source_category = ?")
         params.append(source_category)
+    aliases = region_group_aliases(region_group)
+    if aliases:
+        filters.append("(" + " OR ".join("region_tags LIKE ?" for _ in aliases) + ")")
+        params.extend([f"%{alias}%" for alias in aliases])
     params.append(limit)
+    filter_sql = f"AND {' AND '.join(filters)}" if filters else ""
     rows = conn.execute(
         f"""
         SELECT
@@ -324,13 +334,34 @@ def list_alert_articles(
         FROM articles
         WHERE (importance_score >= ?
            OR verification_status = 'needs_review')
-        {category_sql}
-        ORDER BY importance_score DESC, cluster_source_count DESC, collected_at DESC
+        {filter_sql}
+        ORDER BY importance_score DESC, cluster_source_count DESC, {_article_time_sql()} DESC, id DESC
         LIMIT ?
         """,
         params,
     ).fetchall()
     return [dict(row) for row in rows]
+
+
+def list_region_counts(conn: sqlite3.Connection) -> list[dict]:
+    rows = []
+    for option in region_group_options():
+        aliases = region_group_aliases(option["value"])
+        if not aliases:
+            continue
+        where = " OR ".join("region_tags LIKE ?" for _ in aliases)
+        count = conn.execute(
+            f"SELECT COUNT(1) FROM articles WHERE {where}",
+            [f"%{alias}%" for alias in aliases],
+        ).fetchone()[0]
+        rows.append(
+            {
+                "region_group": option["value"],
+                "label": region_group_label(option["value"]),
+                "count": count,
+            }
+        )
+    return rows
 
 
 def insert_alert_event(conn: sqlite3.Connection, article: dict, reason: str) -> bool:
@@ -948,4 +979,5 @@ def newsroom_stats(conn: sqlite3.Connection) -> dict:
         if conn.execute("SELECT COUNT(1) FROM crawl_runs").fetchone()[0]
         else None,
         "categories": [dict(row) for row in category_rows],
+        "regions": list_region_counts(conn),
     }

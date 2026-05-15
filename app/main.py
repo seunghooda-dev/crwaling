@@ -262,6 +262,7 @@ def articles(
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
     collected_from: str | None = None,
     collected_to: str | None = None,
+    region_group: str | None = None,
     sort: str | None = Query(default="importance", pattern="^(latest|oldest|importance|source|ready)$"),
     conn=Depends(db_session),
     ) -> list[dict]:
@@ -278,6 +279,7 @@ def articles(
         collected_within_days=collected_within_days,
         collected_from=collected_from,
         collected_to=collected_to,
+        region_group=region_group,
         sort=sort,
     )
 
@@ -293,6 +295,7 @@ def articles_count(
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
     collected_from: str | None = None,
     collected_to: str | None = None,
+    region_group: str | None = None,
     conn=Depends(db_session),
 ) -> dict:
     return {
@@ -307,6 +310,7 @@ def articles_count(
             collected_within_days=collected_within_days,
             collected_from=collected_from,
             collected_to=collected_to,
+            region_group=region_group,
         )
     }
 
@@ -315,9 +319,10 @@ def articles_count(
 def priority_articles(
     limit: int = Query(default=50, ge=1, le=200),
     source_category: str | None = None,
+    region_group: str | None = None,
     conn=Depends(db_session),
 ) -> list[dict]:
-    return list_priority_articles(conn, limit=limit, source_category=source_category)
+    return list_priority_articles(conn, limit=limit, source_category=source_category, region_group=region_group)
 
 
 @app.get("/alerts")
@@ -325,9 +330,10 @@ def alerts(
     limit: int = Query(default=50, ge=1, le=200),
     threshold: float = Query(default=4.0, ge=0),
     source_category: str | None = None,
+    region_group: str | None = None,
     conn=Depends(db_session),
 ) -> list[dict]:
-    return list_alert_articles(conn, limit=limit, threshold=threshold, source_category=source_category)
+    return list_alert_articles(conn, limit=limit, threshold=threshold, source_category=source_category, region_group=region_group)
 
 
 @app.get("/alert-events")
@@ -453,6 +459,7 @@ def export_articles_csv(
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
     collected_from: str | None = None,
     collected_to: str | None = None,
+    region_group: str | None = None,
     conn=Depends(db_session),
 ) -> Response:
     articles = list_articles(
@@ -464,6 +471,7 @@ def export_articles_csv(
         collected_within_days=collected_within_days,
         collected_from=collected_from,
         collected_to=collected_to,
+        region_group=region_group,
     )
     return Response(
         content=articles_to_csv(articles),
@@ -481,6 +489,7 @@ def export_cuesheet(
     collected_within_days: int | None = Query(default=None, ge=1, le=365),
     collected_from: str | None = None,
     collected_to: str | None = None,
+    region_group: str | None = None,
     conn=Depends(db_session),
 ) -> PlainTextResponse:
     articles = list_articles(
@@ -492,6 +501,7 @@ def export_cuesheet(
         collected_within_days=collected_within_days,
         collected_from=collected_from,
         collected_to=collected_to,
+        region_group=region_group,
     )
     return PlainTextResponse(
         content=articles_to_cuesheet(articles),

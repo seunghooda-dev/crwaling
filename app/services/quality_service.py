@@ -2,13 +2,8 @@ import json
 from urllib.parse import urlparse
 
 from app.models import Article
+from app.services.region_service import extract_regions
 
-
-REGIONS = [
-    "서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "세종",
-    "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
-    "수원", "성남", "고양", "용인", "창원", "청주", "천안", "전주", "포항",
-]
 
 BAD_TITLE_WORDS = {
     "로그인", "회원가입", "사이트맵", "개인정보", "저작권", "이메일", "바로가기",
@@ -32,11 +27,6 @@ def enrich_article_quality(article: Article) -> Article:
     article.quality_flags = flags
     article.verification_checklist = dict(CHECKLIST_KEYS)
     return article
-
-
-def extract_regions(*values: str | None) -> list[str]:
-    text = " ".join(value or "" for value in values)
-    return [region for region in REGIONS if region in text]
 
 
 def quality_score(article: Article) -> tuple[float, list[str]]:

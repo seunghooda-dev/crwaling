@@ -709,6 +709,35 @@
         line-height: 1.4;
       }
 
+      .region-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .region-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fffefa;
+        color: var(--ink);
+        font-size: 13px;
+        text-align: left;
+      }
+
+      .region-row.active {
+        border-color: var(--accent);
+        background: var(--soft);
+        color: var(--accent-ink);
+      }
+
+      .region-row strong {
+        font-size: 14px;
+      }
+
       .urgent-summary {
         display: grid;
         gap: 8px;
@@ -1100,6 +1129,15 @@
           <option value="compact">간단히</option>
           <option value="detail">자세히</option>
         </select>
+        <select id="region">
+          <option value="">전국</option>
+          <option value="capital">수도권</option>
+          <option value="gangwon">강원</option>
+          <option value="chungcheong">충청</option>
+          <option value="honam">호남</option>
+          <option value="yeongnam">영남</option>
+          <option value="jeju">제주</option>
+        </select>
         <input id="dateFrom" type="date" hidden />
         <input id="dateTo" type="date" hidden />
       </div>
@@ -1121,6 +1159,10 @@
         <section class="panel">
           <h2>취재 감시망</h2>
           <div class="side-body" id="coverageSnapshot"></div>
+        </section>
+        <section class="panel">
+          <h2>지역 현황</h2>
+          <div class="side-body" id="regionStats"></div>
         </section>
         <section class="panel">
           <h2>수집 상태</h2>
@@ -1198,6 +1240,7 @@
       const liveSearchButtonEl = document.querySelector("#liveSearch");
       const urgentRailEl = document.querySelector("#urgentRail");
       const coverageSnapshotEl = document.querySelector("#coverageSnapshot");
+      const regionStatsEl = document.querySelector("#regionStats");
       const sourceWarningsEl = document.querySelector("#sourceWarnings");
       const opsStatusEl = document.querySelector("#opsStatus");
       const sourceQualityEl = document.querySelector("#sourceQuality");
@@ -1228,6 +1271,7 @@
       const unreadOnlyEl = document.querySelector("#unreadOnly");
       const missionModeEl = document.querySelector("#missionMode");
       const recentSearchesEl = document.querySelector("#recentSearches");
+      const regionEl = document.querySelector("#region");
 
       document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
       document.querySelector("#density").value = document.body.dataset.density;
@@ -1260,6 +1304,7 @@
         document.querySelector("#mode").value = "latest";
         document.querySelector("#sort").value = "latest";
         document.querySelector("#status").value = "";
+        regionEl.value = "";
         sourceEl.value = "";
         activeCategory = "";
         document.querySelectorAll("#quickbar button").forEach((button) => {
@@ -1272,6 +1317,7 @@
         document.querySelector("#dateTo").hidden = true;
         document.querySelector("#dateFrom").value = "";
         document.querySelector("#dateTo").value = "";
+        regionEl.value = "";
         urgentThreshold = 3.5;
         localStorage.setItem(urgentThresholdKey, String(urgentThreshold));
         if (!unreadOnly) {
@@ -1507,6 +1553,7 @@
         document.querySelector("#dateTo").value = "";
         document.querySelector("#dateFrom").hidden = true;
         document.querySelector("#dateTo").hidden = true;
+        regionEl.value = "";
         activeCategory = "";
         missionMode = false;
         localStorage.setItem(missionModeKey, "0");
@@ -1578,6 +1625,15 @@
           return;
         }
         if (period) params.set("collected_within_days", period);
+      }
+
+      function addRegionFilter(params) {
+        const region = regionEl.value;
+        if (region) params.set("region_group", region);
+      }
+
+      function selectedRegionLabel() {
+        return regionEl.selectedOptions[0]?.textContent || "전체 지역";
       }
 
       function playUrgentTone() {
@@ -1770,6 +1826,7 @@
         const source = sourceEl.value;
         const status = document.querySelector("#status").value;
         const sort = document.querySelector("#sort").value;
+        const region = regionEl.value;
         try {
           if (options.page) currentPage = options.page;
           if (options.resetPage) currentPage = 1;
@@ -1793,11 +1850,15 @@
           if (activeCategory) params.set("source_category", activeCategory);
           if (sort) params.set("sort", sort);
           addDateFilters(params);
+          addRegionFilter(params);
+          const modeParams = new URLSearchParams({ limit: "50" });
+          if (activeCategory) modeParams.set("source_category", activeCategory);
+          addRegionFilter(modeParams);
           const url =
             mode === "priority"
-              ? `/priority?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
+              ? `/priority?${modeParams.toString()}`
               : mode === "alerts"
-                ? `/alerts?limit=50${activeCategory ? `&source_category=${encodeURIComponent(activeCategory)}` : ""}`
+                ? `/alerts?${modeParams.toString()}`
                 : `/articles?${params.toString()}`;
           const items = await fetchJson(url);
           if (requestToken !== articleLoadToken) return;
@@ -1830,12 +1891,13 @@
             showToast(`새 기사 ${items.length - lastArticleCount}건이 목록에 표시됐습니다.`);
           }
           lastArticleCount = items.length;
-          const resultLabel = q || source || status || activeCategory ? "검색 결과" : "목록";
+          const resultLabel = q || source || status || activeCategory || region ? "검색 결과" : "목록";
           const start = items.length ? offset + 1 : 0;
           const end = offset + items.length;
           const resultCount = countInfo ? `${start}-${end}/${countInfo.count}건` : `${items.length}건`;
           const unreadText = unreadOnly ? `미확인 표시 ${visibleItems.length}/${items.length}건` : `미확인 ${unread}건`;
-          liveStatusEl.textContent = `${resultLabel} ${resultCount} · ${unreadText} · ${new Date().toLocaleTimeString("ko-KR")}`;
+          const regionText = region ? ` · ${selectedRegionLabel()}` : "";
+          liveStatusEl.textContent = `${resultLabel} ${resultCount}${regionText} · ${unreadText} · ${new Date().toLocaleTimeString("ko-KR")}`;
         } finally {
           if (requestToken === articleLoadToken) setArticleLoading(false);
         }
@@ -1881,6 +1943,7 @@
             const params = new URLSearchParams({ limit: "20", newsroom_status: value });
             if (activeCategory) params.set("source_category", activeCategory);
             addDateFilters(params);
+            addRegionFilter(params);
             const items = await fetchJson(`/articles?${params.toString()}`);
             return { value, label, items };
           }),
@@ -2072,6 +2135,7 @@
       async function loadUrgentRail() {
         const params = new URLSearchParams({ limit: "8", threshold: String(urgentThreshold) });
         if (activeCategory) params.set("source_category", activeCategory);
+        addRegionFilter(params);
         const items = await fetchJson(`/alerts?${params.toString()}`);
         const visibleItems = items.slice(0, 5);
         const currentIds = new Set(items.map((item) => String(item.id)));
@@ -2480,6 +2544,25 @@
             .map((row) => `<div class="stat"><span>${escapeHtml(categoryLabel(row.source_category))}</span><strong>${row.count}</strong></div>`)
             .join("")}
         `;
+        renderRegionStats(stats.regions || []);
+      }
+
+      function renderRegionStats(regions) {
+        const selected = regionEl.value;
+        regionStatsEl.innerHTML = regions.length
+          ? `<div class="region-list">
+              ${regions
+                .map(
+                  (row) => `
+                    <button class="region-row ${selected === row.region_group ? "active" : ""}" data-region-group="${escapeHtml(row.region_group)}">
+                      <span>${escapeHtml(row.label)}</span>
+                      <strong>${Number(row.count || 0)}</strong>
+                    </button>
+                  `,
+                )
+                .join("")}
+            </div>`
+          : '<div class="empty">지역 태그가 있는 기사가 없습니다.</div>';
       }
 
       function runSearch() {
@@ -2563,6 +2646,9 @@
       document.querySelector("#sort").addEventListener("change", () => {
         loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
+      regionEl.addEventListener("change", () => {
+        refreshDashboard().catch((error) => showToast(error.message));
+      });
       document.querySelector("#density").addEventListener("change", (event) => {
         document.body.dataset.density = event.target.value;
         localStorage.setItem(densityKey, event.target.value);
@@ -2595,16 +2681,24 @@
         event.target.classList.add("active");
         loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
+      regionStatsEl.addEventListener("click", (event) => {
+        const row = event.target.closest("[data-region-group]");
+        if (!row) return;
+        regionEl.value = regionEl.value === row.dataset.regionGroup ? "" : row.dataset.regionGroup;
+        refreshDashboard().catch((error) => showToast(error.message));
+      });
       document.querySelector("#exportCsv").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "1000" });
         if (activeCategory) params.set("source_category", activeCategory);
         addDateFilters(params);
+        addRegionFilter(params);
         window.open(`/exports/articles.csv?${params.toString()}`, "_blank");
       });
       document.querySelector("#exportCue").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "100", newsroom_status: "ready" });
         if (activeCategory) params.set("source_category", activeCategory);
         addDateFilters(params);
+        addRegionFilter(params);
         window.open(`/exports/cuesheet.txt?${params.toString()}`, "_blank");
       });
       document.querySelector("#backupDb").addEventListener("click", async () => {
