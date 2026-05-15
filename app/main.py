@@ -263,7 +263,7 @@ def articles(
     collected_from: str | None = None,
     collected_to: str | None = None,
     region_group: str | None = None,
-    sort: str | None = Query(default="importance", pattern="^(latest|oldest|importance|source|ready)$"),
+    sort: str | None = Query(default="latest", pattern="^(latest|oldest|importance|source|ready)$"),
     conn=Depends(db_session),
     ) -> list[dict]:
     return list_articles(

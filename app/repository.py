@@ -173,7 +173,7 @@ def _article_order(sort: str | None) -> str:
         "importance": f"importance_score DESC, {article_time} DESC, id DESC",
         "source": f"source_name ASC, {unknown_published} ASC, {article_time} DESC, id DESC",
         "ready": f"CASE WHEN newsroom_status = 'ready' THEN 0 ELSE 1 END, importance_score DESC, {article_time} DESC, id DESC",
-    }.get(sort or "importance", f"importance_score DESC, {article_time} DESC, id DESC")
+    }.get(sort or "latest", f"{unknown_published} ASC, {article_time} DESC, importance_score DESC, id DESC")
 
 
 def list_articles(

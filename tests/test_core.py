@@ -141,6 +141,23 @@ def test_latest_sort_prefers_published_at_over_collection_batch():
     assert [row["title"] for row in rows] == ["먼저 수집된 최신 기사", "늦게 수집된 예전 기사"]
 
 
+def test_default_article_sort_is_latest_not_importance():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.execute(
+        """
+        INSERT INTO articles (source_name, source_type, title, url, fingerprint, published_at, importance_score)
+        VALUES
+          ('A', 'rss', '오래된 중요 기사', 'https://old-important', 'old-important', '2026-05-13T19:00:00+09:00', 9),
+          ('B', 'rss', '방금 나온 기사', 'https://latest', 'latest', '2026-05-15T20:00:00+09:00', 1)
+        """
+    )
+
+    rows = list_articles(conn)
+    assert [row["title"] for row in rows] == ["방금 나온 기사", "오래된 중요 기사"]
+
+
 def test_latest_sort_puts_unknown_published_time_after_known_time():
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
