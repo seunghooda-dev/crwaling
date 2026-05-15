@@ -313,6 +313,30 @@
         color: var(--wine);
       }
 
+      .crawl-progress {
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+        border-radius: 6px;
+        background: var(--soft);
+        color: var(--accent-ink);
+        font-size: 13px;
+      }
+
+      .progress-track {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(8, 61, 119, 0.14);
+      }
+
+      .progress-bar {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+        transition: width 160ms ease;
+      }
+
       .run,
       .cluster {
         border-bottom: 1px solid var(--line);
@@ -950,6 +974,7 @@
       let selectedArticleId = undefined;
       let liveRefreshRunning = false;
       let liveSearchTimer = undefined;
+      let crawlProgressTimer = undefined;
 
       document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
       document.querySelector("#density").value = document.body.dataset.density;
@@ -1002,6 +1027,7 @@
         if (activeCategory) payload.source_category = activeCategory;
         if (document.querySelector("#q").value.trim()) payload.q = document.querySelector("#q").value.trim();
         liveStatusEl.textContent = "각 출처 접속 중 · 새 기사 확인 중";
+        startCrawlProgressPolling();
         try {
           const result = await fetchJson("/crawl/refresh", {
             method: "POST",
@@ -1018,6 +1044,8 @@
         } finally {
           liveRefreshRunning = false;
           searchButtonEl.textContent = originalLabel;
+          stopCrawlProgressPolling();
+          loadSchedulerStatus().catch((error) => showToast(error.message));
         }
       }
 
@@ -1651,14 +1679,52 @@
 
       async function loadSchedulerStatus() {
         const status = await fetchJson("/scheduler/status");
+        renderSchedulerStatus(status);
+      }
+
+      function renderSchedulerStatus(status) {
         const last = status.last_run;
         const level = status.running_count ? "warning" : status.failed_24h ? "danger" : "";
+        const progress = status.progress || {};
+        const total = Number(progress.total || 0);
+        const index = Number(progress.index || 0);
+        const percent = total ? Math.min(100, Math.round((index / total) * 100)) : 0;
+        const progressText =
+          progress.status === "running" && total
+            ? `수집 중 ${index}/${total} · ${progress.current_source || "출처 확인 중"}`
+            : "수집 대기";
         schedulerStatusEl.innerHTML = `
           <div class="stat ${level}"><span>현재 실행</span><strong>${status.running_count ? `${status.running_count}건` : "대기"}</strong></div>
+          <div class="crawl-progress">
+            <strong>${escapeHtml(progressText)}</strong>
+            <div class="progress-track"><div class="progress-bar" style="width: ${percent}%"></div></div>
+          </div>
           <div class="stat"><span>최근 상태</span><strong>${escapeHtml(last?.status || "-")}</strong></div>
           <div class="stat"><span>최근 출처</span><strong>${escapeHtml(last?.source_name || "-")}</strong></div>
           <div class="stat"><span>24시간 실패</span><strong>${status.failed_24h}</strong></div>
         `;
+      }
+
+      function startCrawlProgressPolling() {
+        stopCrawlProgressPolling();
+        crawlProgressTimer = setInterval(async () => {
+          try {
+            const status = await fetchJson("/scheduler/status");
+            renderSchedulerStatus(status);
+            const progress = status.progress || {};
+            if (progress.status === "running" && Number(progress.total || 0)) {
+              liveStatusEl.textContent = `수집 중 ${progress.index}/${progress.total} · ${progress.current_source || "출처 확인 중"}`;
+            }
+          } catch {
+            return;
+          }
+        }, 1000);
+      }
+
+      function stopCrawlProgressPolling() {
+        if (!crawlProgressTimer) return;
+        clearInterval(crawlProgressTimer);
+        crawlProgressTimer = undefined;
       }
 
       async function loadOperations() {
@@ -1674,30 +1740,30 @@
       async function loadSourceQuality() {
         const quality = await fetchJson("/sources/quality");
         const warnings = quality.filter(
-          (source) => source.enabled && (source.last_status === "failed" || Number(source.zero_new_streak || 0) >= 3),
+          (source) => source.enabled && ["danger", "warning"].includes(source.risk_level),
         );
         sourceWarningsEl.innerHTML = warnings.length
           ? warnings
               .slice(0, 6)
               .map(
                 (source) => `
-                  <div class="stat ${source.last_status === "failed" ? "danger" : "warning"}">
+                  <div class="stat ${source.risk_level === "danger" ? "danger" : "warning"}">
                     <span>${escapeHtml(source.name)}</span>
-                    <strong>${source.last_status === "failed" ? "실패" : "0건 반복"}</strong>
+                    <strong>${escapeHtml(source.zero_new_label || "점검")}</strong>
                   </div>
-                  <div class="summary">${escapeHtml(source.last_error_message || `최근 성공 수집 ${source.zero_new_streak}회가 모두 0건입니다.`)}</div>
+                  <div class="summary">${escapeHtml(sourceWarningText(source))}</div>
                 `,
               )
               .join("")
-          : '<div class="empty">실패한 출처가 없습니다.</div>';
+          : '<div class="empty">점검이 필요한 출처가 없습니다.</div>';
         sourceQualityEl.innerHTML = quality
-          .slice(0, 10)
+          .slice(0, 12)
           .map((source) => {
             const rate = source.success_rate === null ? "-" : `${source.success_rate}%`;
             const rowClass =
-              source.last_status === "failed"
+              source.risk_level === "danger"
                 ? "quality-row failed"
-                : Number(source.zero_new_streak || 0) >= 3
+                : source.risk_level === "warning"
                   ? "quality-row warning"
                   : "quality-row";
             return `
@@ -1705,11 +1771,24 @@
                 <strong>${escapeHtml(source.name)}</strong>
                 <span>${rate}</span>
                 <span>${escapeHtml(categoryLabel(source.source_category))} · 기사 ${source.article_count}</span>
-                <span>${escapeHtml(source.last_status || "대기")} · 0건 ${Number(source.zero_new_streak || 0)}회</span>
+                <span>${escapeHtml(source.zero_new_label || "정상")} · 0건 ${Number(source.zero_new_streak || 0)}회</span>
               </div>
             `;
           })
           .join("");
+      }
+
+      function sourceWarningText(source) {
+        if (source.last_status === "failed") {
+          return source.last_error_message || "최근 수집이 실패했습니다. URL, 리다이렉트, 접속 차단 여부를 확인하세요.";
+        }
+        if (source.zero_new_status === "selector_check") {
+          return "기사 누적이 없고 0건 수집이 반복됐습니다. 사이트 구조나 선택자 변경 가능성이 큽니다.";
+        }
+        if (source.zero_new_status === "no_new_watch") {
+          return `최근 성공 수집 ${source.zero_new_streak}회가 모두 0건입니다. 실제 새 기사 없음인지 선택자 문제인지 확인하세요.`;
+        }
+        return "현재 정상 범위입니다.";
       }
 
       async function loadRuns() {

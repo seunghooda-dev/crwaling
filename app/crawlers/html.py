@@ -33,7 +33,7 @@ class HtmlCrawler(Crawler):
         soup = BeautifulSoup(response.text, "html.parser")
         articles: list[Article] = []
         for anchor in soup.select(self._selector_for(source)):
-            raw_title = normalize_space(anchor.get_text(" "))
+            raw_title = self._anchor_title(source, anchor)
             title, summary = self._split_title_summary(source, raw_title)
             href = anchor.get("href")
             if not self._is_candidate(source, title, href):
@@ -134,6 +134,50 @@ class HtmlCrawler(Crawler):
         if source.source_category in {"fire", "police", "disaster"}:
             return any(token in href for token in ("view", "bbs", "nttId", "cntId", "detail", ".do", ".jsp"))
         return True
+
+    def _anchor_title(self, source: Source, anchor) -> str:
+        candidates = [
+            anchor.get("title"),
+            anchor.get("aria-label"),
+            anchor.get("data-title"),
+            anchor.get("data-news-title"),
+        ]
+        image = anchor.find("img")
+        if image:
+            candidates.extend([image.get("alt"), image.get("title")])
+
+        visible_text = normalize_space(anchor.get_text(" "))
+        if "news.kbs.co.kr" in source.url:
+            candidates.extend(self._texts_from(anchor, ".tit, .title, .news-tit, .txt"))
+        if "imnews.imbc.com" in source.url:
+            candidates.extend(self._texts_from(anchor, ".title, .tit, .text_area"))
+        if "ytn.co.kr" in source.url:
+            candidates.extend(self._texts_from(anchor, ".title, .tit, .txt"))
+        if "news.tvchosun.com" in source.url:
+            candidates.extend(self._texts_from(anchor, ".title, .tit"))
+        if "ichannela.com" in source.url:
+            candidates.extend(self._texts_from(anchor, ".tit, .title"))
+        if "mbn.co.kr" in source.url:
+            candidates.extend(self._texts_from(anchor, ".tit, .title, .news_txt"))
+        if "yonhapnewstv.co.kr" in source.url:
+            candidates.extend(self._texts_from(anchor, ".tit, .title, .news-tit"))
+
+        candidates.append(visible_text)
+        cleaned = [self._clean_anchor_title(value) for value in candidates if value]
+        cleaned = [value for value in cleaned if len(value) >= 8]
+        if not cleaned:
+            return visible_text
+        return min(cleaned, key=lambda value: (len(value) > 130, len(value)))
+
+    def _texts_from(self, anchor, selector: str) -> list[str]:
+        return [normalize_space(item.get_text(" ")) for item in anchor.select(selector)]
+
+    def _clean_anchor_title(self, value: str) -> str:
+        text = normalize_space(value)
+        text = re.sub(r"^(동영상|영상|포토|단독|속보)\s+", r"[\1] ", text)
+        text = re.sub(r"\s+(재생|보기|바로가기)$", "", text)
+        text = re.sub(r"\s*\|\s*[^|]{1,12}$", "", text)
+        return text.strip()
 
     def _split_title_summary(self, source: Source, text: str) -> tuple[str, str | None]:
         if "d.kbs.co.kr" not in source.url:

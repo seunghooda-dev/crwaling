@@ -2,12 +2,14 @@ import sqlite3
 from datetime import datetime, timedelta
 
 import httpx
+from bs4 import BeautifulSoup
 
+from app.crawlers.html import HtmlCrawler
 from app.crawlers.http import crawler_headers, fetch_with_retry
 from app.database import SCHEMA
 from app.content import clean_html_text, extract_media_urls
 from app.models import Article, Source, SourceType
-from app.repository import count_articles, list_articles, list_source_quality
+from app.repository import count_articles, list_articles, list_source_quality, scheduler_status, set_app_state
 from app.services.ai_assist import build_ai_assist
 from app.services.notification_service import notify_search_matches
 from app.services.scoring import apply_newsroom_scoring
@@ -163,6 +165,8 @@ def test_source_quality_reports_zero_new_streak():
 
     [quality] = list_source_quality(conn)
     assert quality["zero_new_streak"] == 3
+    assert quality["zero_new_status"] == "selector_check"
+    assert quality["risk_level"] == "danger"
 
 
 def test_source_quality_success_rate_excludes_canceled_runs():
@@ -213,3 +217,39 @@ def test_fetch_with_retry_retries_transient_status_codes():
     assert len(calls) == 2
     assert calls[0][1]["follow_redirects"] is True
     assert "ko-KR" in calls[0][1]["headers"]["Accept-Language"]
+
+
+def test_html_crawler_prefers_concise_title_attributes():
+    source = Source(
+        name="MBC News Monitor",
+        source_type=SourceType.html,
+        url="https://imnews.imbc.com/m_main.html",
+    )
+    soup = BeautifulSoup(
+        """
+        <a href="/news/2026/society/article.html" title="정확한 기사 제목">
+          정확한 기사 제목 기자 설명과 긴 본문 요약이 이어집니다
+        </a>
+        """,
+        "html.parser",
+    )
+
+    assert HtmlCrawler()._anchor_title(source, soup.a) == "정확한 기사 제목"
+
+
+def test_scheduler_status_includes_crawl_progress():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    set_app_state(conn, "crawl_progress_status", "running")
+    set_app_state(conn, "crawl_progress_current", "SBS News Latest")
+    set_app_state(conn, "crawl_progress_index", "3")
+    set_app_state(conn, "crawl_progress_total", "35")
+
+    status = scheduler_status(conn)
+    assert status["progress"] == {
+        "status": "running",
+        "current_source": "SBS News Latest",
+        "index": 3,
+        "total": 35,
+    }

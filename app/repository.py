@@ -718,6 +718,12 @@ def scheduler_status(conn: sqlite3.Connection) -> dict:
         "running_count": running_count,
         "failed_24h": failed_recent,
         "heartbeat": get_app_state(conn, "auto_crawl_heartbeat"),
+        "progress": {
+            "status": (get_app_state(conn, "crawl_progress_status") or {}).get("value") or "idle",
+            "current_source": (get_app_state(conn, "crawl_progress_current") or {}).get("value") or "",
+            "index": int((get_app_state(conn, "crawl_progress_index") or {}).get("value") or 0),
+            "total": int((get_app_state(conn, "crawl_progress_total") or {}).get("value") or 0),
+        },
     }
 
 
@@ -791,8 +797,44 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
         measured_runs = success_runs + failed_runs
         item["measured_runs"] = measured_runs
         item["success_rate"] = round(success_runs / measured_runs * 100, 1) if measured_runs else None
+        zero_new_streak = item.get("zero_new_streak") or 0
+        article_count = item.get("article_count") or 0
+        if item.get("last_status") == "failed":
+            item["risk_level"] = "danger"
+            item["zero_new_status"] = "failed"
+            item["zero_new_label"] = "최근 실패"
+            item["risk_score"] = 100
+        elif zero_new_streak >= 3 and article_count == 0:
+            item["risk_level"] = "danger"
+            item["zero_new_status"] = "selector_check"
+            item["zero_new_label"] = "선택자 점검 필요"
+            item["risk_score"] = 80 + zero_new_streak
+        elif zero_new_streak >= 3:
+            item["risk_level"] = "warning"
+            item["zero_new_status"] = "no_new_watch"
+            item["zero_new_label"] = "0건 반복"
+            item["risk_score"] = 50 + zero_new_streak
+        elif zero_new_streak:
+            item["risk_level"] = "normal"
+            item["zero_new_status"] = "normal_zero"
+            item["zero_new_label"] = "정상 0건"
+            item["risk_score"] = 10 + zero_new_streak
+        else:
+            item["risk_level"] = "normal"
+            item["zero_new_status"] = "ok"
+            item["zero_new_label"] = "정상"
+            item["risk_score"] = 0
         items.append(item)
-    return items
+    return sorted(
+        items,
+        key=lambda item: (
+            not bool(item.get("enabled")),
+            -int(item.get("risk_score") or 0),
+            item.get("success_rate") if item.get("success_rate") is not None else 101,
+            item.get("source_category") or "",
+            item.get("name") or "",
+        ),
+    )
 
 
 def newsroom_stats(conn: sqlite3.Connection) -> dict:

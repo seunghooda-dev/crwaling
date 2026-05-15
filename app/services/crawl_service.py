@@ -21,6 +21,10 @@ from app.services.snapshot_service import save_article_snapshot
 
 
 MANUAL_CRAWL_CANCEL_KEY = "manual_crawl_cancel_requested"
+CRAWL_PROGRESS_CURRENT_KEY = "crawl_progress_current"
+CRAWL_PROGRESS_INDEX_KEY = "crawl_progress_index"
+CRAWL_PROGRESS_TOTAL_KEY = "crawl_progress_total"
+CRAWL_PROGRESS_STATUS_KEY = "crawl_progress_status"
 
 
 class CrawlService:
@@ -54,16 +58,23 @@ class CrawlService:
         if cancel_key and reset_cancel:
             set_app_state(conn, cancel_key, "0")
             conn.commit()
-        for row in list_sources(conn):
+        source_rows = [
+            row
+            for row in list_sources(conn)
+            if row["enabled"]
+            and (not source_name or row["name"] == source_name)
+            and (not source_category or row["source_category"] == source_category)
+        ]
+        if cancel_key:
+            set_app_state(conn, CRAWL_PROGRESS_TOTAL_KEY, str(len(source_rows)))
+            set_app_state(conn, CRAWL_PROGRESS_INDEX_KEY, "0")
+            set_app_state(conn, CRAWL_PROGRESS_CURRENT_KEY, "")
+            set_app_state(conn, CRAWL_PROGRESS_STATUS_KEY, "running")
+            conn.commit()
+        for index, row in enumerate(source_rows, start=1):
             if cancel_key and _is_canceled(conn, cancel_key):
                 canceled = True
                 break
-            if not row["enabled"]:
-                continue
-            if source_name and row["name"] != source_name:
-                continue
-            if source_category and row["source_category"] != source_category:
-                continue
             source = Source(
                 name=row["name"],
                 source_type=SourceType(row["source_type"]),
@@ -82,6 +93,10 @@ class CrawlService:
             run_id = start_crawl_run(conn, source.name)
             count = 0
             try:
+                if cancel_key:
+                    set_app_state(conn, CRAWL_PROGRESS_INDEX_KEY, str(index))
+                    set_app_state(conn, CRAWL_PROGRESS_CURRENT_KEY, source.name)
+                    set_app_state(conn, CRAWL_PROGRESS_STATUS_KEY, "running")
                 set_app_state(conn, "auto_crawl_heartbeat", source.name)
                 conn.commit()
                 logger.info("crawl start source=%s", source.name)
@@ -116,6 +131,10 @@ class CrawlService:
                 logger.exception("crawl failed source=%s", source.name)
         if cancel_key and canceled:
             set_app_state(conn, cancel_key, "0")
+            conn.commit()
+        if cancel_key:
+            set_app_state(conn, CRAWL_PROGRESS_STATUS_KEY, "canceled" if canceled else "idle")
+            set_app_state(conn, CRAWL_PROGRESS_CURRENT_KEY, "")
             conn.commit()
         return {
             "results": results,
