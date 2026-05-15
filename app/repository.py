@@ -735,6 +735,7 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
             (SELECT COUNT(1) FROM crawl_runs cr WHERE cr.source_name = s.name) AS total_runs,
             (SELECT COUNT(1) FROM crawl_runs cr WHERE cr.source_name = s.name AND cr.status = 'success') AS success_runs,
             (SELECT COUNT(1) FROM crawl_runs cr WHERE cr.source_name = s.name AND cr.status = 'failed') AS failed_runs,
+            (SELECT COUNT(1) FROM crawl_runs cr WHERE cr.source_name = s.name AND cr.status = 'canceled') AS canceled_runs,
             (
                 SELECT cr.status
                 FROM crawl_runs cr
@@ -785,9 +786,11 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
     items = []
     for row in rows:
         item = dict(row)
-        total_runs = item.get("total_runs") or 0
         success_runs = item.get("success_runs") or 0
-        item["success_rate"] = round(success_runs / total_runs * 100, 1) if total_runs else None
+        failed_runs = item.get("failed_runs") or 0
+        measured_runs = success_runs + failed_runs
+        item["measured_runs"] = measured_runs
+        item["success_rate"] = round(success_runs / measured_runs * 100, 1) if measured_runs else None
         items.append(item)
     return items
 

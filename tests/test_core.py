@@ -160,3 +160,24 @@ def test_source_quality_reports_zero_new_streak():
 
     [quality] = list_source_quality(conn)
     assert quality["zero_new_streak"] == 3
+
+
+def test_source_quality_success_rate_excludes_canceled_runs():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.execute(
+        """
+        INSERT INTO sources (name, source_type, source_category, url)
+        VALUES ('Source A', 'rss', 'news', 'https://example.com')
+        """
+    )
+    conn.executemany(
+        "INSERT INTO crawl_runs (source_name, status, new_article_count) VALUES ('Source A', ?, 0)",
+        [("success",), ("success",), ("canceled",)],
+    )
+
+    [quality] = list_source_quality(conn)
+    assert quality["canceled_runs"] == 1
+    assert quality["measured_runs"] == 2
+    assert quality["success_rate"] == 100.0
