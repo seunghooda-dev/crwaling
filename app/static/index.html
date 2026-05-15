@@ -615,15 +615,143 @@
         gap: 8px;
       }
 
-      .urgent-item {
+      .urgent-summary {
+        display: grid;
+        gap: 8px;
         padding: 10px;
-        border: 1px solid rgba(109, 26, 54, 0.22);
-        border-left: 4px solid var(--wine);
+        border: 1px solid rgba(109, 26, 54, 0.18);
         border-radius: 8px;
         background: #fff8f9;
+      }
+
+      .urgent-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+      }
+
+      .urgent-metric {
+        display: grid;
+        gap: 2px;
+        padding: 7px;
+        border-radius: 6px;
+        background: #fffefa;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .urgent-metric strong {
+        color: var(--ink);
+        font-size: 17px;
+        line-height: 1;
+      }
+
+      .urgent-controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .urgent-controls button {
+        height: 30px;
+        padding: 0 8px;
+        font-size: 12px;
+      }
+
+      .urgent-controls button.active {
+        border-color: var(--wine);
+        background: var(--wine);
+        color: #fffefa;
+      }
+
+      .urgent-item {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid rgba(109, 26, 54, 0.2);
+        border-left: 4px solid var(--warn);
+        border-radius: 8px;
+        background: #fffefa;
         cursor: pointer;
         font-size: 13px;
         line-height: 1.45;
+      }
+
+      .urgent-item.critical {
+        border-left-color: var(--wine);
+        background: #fff8f9;
+      }
+
+      .urgent-item.high {
+        border-left-color: var(--warn);
+        background: #fffaf6;
+      }
+
+      .urgent-head {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .urgent-level {
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: var(--amber-soft);
+        color: var(--warn);
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .urgent-level.critical {
+        background: var(--wine);
+        color: #fffefa;
+      }
+
+      .urgent-title {
+        margin: 0;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+
+      .urgent-reasons,
+      .urgent-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+      }
+
+      .urgent-chip {
+        padding: 3px 6px;
+        border-radius: 999px;
+        background: var(--stone);
+        color: #34404e;
+        font-size: 11px;
+      }
+
+      .urgent-actions button,
+      .urgent-actions a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 28px;
+        padding: 0 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fffefa;
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .urgent-actions .primary-link {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fffefa;
       }
 
       .urgent-item.flash {
@@ -964,10 +1092,12 @@
       const categoryButtons = Array.from(document.querySelectorAll("#quickbar button"));
       const readKey = "newsroom-read-article-ids";
       const densityKey = "newsroom-card-density";
+      const urgentThresholdKey = "newsroom-urgent-threshold";
       const pageSize = 50;
       let activeCategory = "";
       let currentPage = 1;
       let articleLoadToken = 0;
+      let urgentThreshold = Number(localStorage.getItem(urgentThresholdKey) || 4.5);
       let toastTimer = undefined;
       let lastArticleCount = undefined;
       let lastUrgentIds = new Set();
@@ -1652,29 +1782,97 @@
       }
 
       async function loadUrgentRail() {
-        const params = new URLSearchParams({ limit: "5", threshold: "4.5" });
+        const params = new URLSearchParams({ limit: "8", threshold: String(urgentThreshold) });
         if (activeCategory) params.set("source_category", activeCategory);
         const items = await fetchJson(`/alerts?${params.toString()}`);
+        const visibleItems = items.slice(0, 5);
         const currentIds = new Set(items.map((item) => String(item.id)));
         const hasNewUrgent = [...currentIds].some((id) => !lastUrgentIds.has(id));
-        urgentRailEl.innerHTML = items.length
-          ? items
-              .slice(0, 5)
-              .map(
-                (item) => `
-                  <div class="urgent-item ${lastUrgentIds.has(String(item.id)) ? "" : "flash"}" data-id="${item.id}">
-                    <strong>${escapeHtml(item.title)}</strong><br />
-                    ${escapeHtml(categoryLabel(item.source_category))} · ${escapeHtml(item.source_name)} · score ${Number(item.importance_score || 0).toFixed(1)}
-                  </div>
-                `,
-              )
-              .join("")
-          : '<div class="empty">긴급 후보가 없습니다.</div>';
+        urgentRailEl.innerHTML = `
+          ${urgentSummaryTemplate(items)}
+          ${
+            visibleItems.length
+              ? visibleItems.map(urgentItemTemplate).join("")
+              : '<div class="empty">긴급 후보가 없습니다.</div>'
+          }
+        `;
         if (lastUrgentIds.size && hasNewUrgent) {
           playUrgentTone();
           showToast("새 긴급 후보가 들어왔습니다.");
         }
         lastUrgentIds = currentIds;
+      }
+
+      function urgentSummaryTemplate(items) {
+        const critical = items.filter((item) => urgentSeverity(item).level === "critical").length;
+        const needsReview = items.filter((item) => item.verification_status === "needs_review").length;
+        const sourceCount = new Set(items.map((item) => item.source_name)).size;
+        return `
+          <div class="urgent-summary">
+            <div class="urgent-metrics">
+              <span class="urgent-metric"><strong>${items.length}</strong>후보</span>
+              <span class="urgent-metric"><strong>${critical}</strong>즉시</span>
+              <span class="urgent-metric"><strong>${sourceCount}</strong>출처</span>
+            </div>
+            <div class="urgent-controls">
+              ${urgentThresholdButton(4.5, "기본")}
+              ${urgentThresholdButton(5.5, "높음")}
+              ${urgentThresholdButton(6.5, "최상")}
+            </div>
+            ${needsReview ? `<span class="summary">확인 필요 ${needsReview}건</span>` : ""}
+          </div>
+        `;
+      }
+
+      function urgentThresholdButton(value, label) {
+        return `<button data-urgent-threshold="${value}" class="${urgentThreshold === value ? "active" : ""}">${label}</button>`;
+      }
+
+      function urgentItemTemplate(item) {
+        const severity = urgentSeverity(item);
+        const display = articleDisplayParts(item);
+        const reasons = urgentReasons(item)
+          .slice(0, 4)
+          .map((reason) => `<span class="urgent-chip">${escapeHtml(reason)}</span>`)
+          .join("");
+        return `
+          <div class="urgent-item ${severity.level} ${lastUrgentIds.has(String(item.id)) ? "" : "flash"}" data-id="${item.id}">
+            <div class="urgent-head">
+              <span class="urgent-level ${severity.level}">${escapeHtml(severity.label)}</span>
+              <span class="score">score ${Number(item.importance_score || 0).toFixed(1)}</span>
+            </div>
+            <strong class="urgent-title">${highlightSearch(display.title)}</strong>
+            <div class="meta">
+              <span>${escapeHtml(categoryLabel(item.source_category))}</span>
+              <span>${escapeHtml(item.source_name)}</span>
+              <span>${escapeHtml(formatArticleTime(item.published_at || item.collected_at) || "-")}</span>
+            </div>
+            <div class="urgent-reasons">${reasons}</div>
+            <div class="urgent-actions">
+              <button data-urgent-action="detail" data-id="${item.id}">상세</button>
+              <a class="primary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" data-urgent-action="open">원문</a>
+              <button data-urgent-action="ready" data-id="${item.id}">방송후보</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function urgentSeverity(item) {
+        const score = Number(item.importance_score || 0);
+        if (score >= 6.5) return { level: "critical", label: "즉시" };
+        if (score >= 5) return { level: "high", label: "주의" };
+        return { level: "watch", label: "관찰" };
+      }
+
+      function urgentReasons(item) {
+        const reasons = [];
+        const keywords = parseJsonList(item.keywords).slice(0, 3);
+        if (keywords.length) reasons.push(`키워드 ${keywords.join(", ")}`);
+        if (Number(item.cluster_source_count || 0) > 1) reasons.push(`교차 ${item.cluster_source_count}개 출처`);
+        if (item.verification_status === "needs_review") reasons.push("검증 필요");
+        if (["disaster", "fire", "police", "weather", "health"].includes(item.source_category)) reasons.push(categoryLabel(item.source_category));
+        if (!reasons.length) reasons.push("중요도 상위");
+        return reasons;
       }
 
       async function loadSchedulerStatus() {
@@ -2071,6 +2269,35 @@
         if (item) showClusterDetail(item.dataset.clusterId).catch((error) => showToast(error.message));
       });
       urgentRailEl.addEventListener("click", (event) => {
+        const thresholdButton = event.target.closest("[data-urgent-threshold]");
+        if (thresholdButton) {
+          urgentThreshold = Number(thresholdButton.dataset.urgentThreshold);
+          localStorage.setItem(urgentThresholdKey, String(urgentThreshold));
+          loadUrgentRail().catch((error) => showToast(error.message));
+          return;
+        }
+        const action = event.target.closest("[data-urgent-action]");
+        if (action) {
+          if (action.dataset.urgentAction === "open") return;
+          const id = action.dataset.id;
+          if (action.dataset.urgentAction === "ready") {
+            fetchJson(`/articles/${id}/workflow`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ newsroom_status: "ready" }),
+            })
+              .then(() => {
+                showToast("방송 후보로 표시했습니다.");
+                return Promise.all([loadUrgentRail(), loadArticles()]);
+              })
+              .catch((error) => showToast(error.message));
+            return;
+          }
+          if (action.dataset.urgentAction === "detail") {
+            showDetail(id).catch((error) => showToast(error.message));
+            return;
+          }
+        }
         const item = event.target.closest("[data-id]");
         if (item) showDetail(item.dataset.id).catch((error) => showToast(error.message));
       });

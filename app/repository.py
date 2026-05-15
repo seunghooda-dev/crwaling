@@ -325,7 +325,7 @@ def list_alert_articles(
         WHERE (importance_score >= ?
            OR verification_status = 'needs_review')
         {category_sql}
-        ORDER BY importance_score DESC, collected_at DESC
+        ORDER BY importance_score DESC, cluster_source_count DESC, collected_at DESC
         LIMIT ?
         """,
         params,
