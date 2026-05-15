@@ -3,6 +3,7 @@ import logging
 
 from app.crawlers.html import HtmlCrawler
 from app.crawlers.rss import RssCrawler
+from app.crawlers.safe_korea import SafeKoreaDisasterMessageCrawler
 from app.models import Source, SourceType
 from app.repository import (
     finish_crawl_run,
@@ -32,6 +33,7 @@ class CrawlService:
         self.crawlers = {
             SourceType.rss: RssCrawler(),
             SourceType.html: HtmlCrawler(),
+            SourceType.api: SafeKoreaDisasterMessageCrawler(),
         }
 
     def crawl_enabled_sources(

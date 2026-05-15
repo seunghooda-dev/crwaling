@@ -13,6 +13,7 @@ SOURCE_WEIGHTS = {
     "Korea Policy News": 0.75,
     "Korea Policy Photo": 0.5,
     "Korea Policy Video": 0.55,
+    "Safe Korea Disaster Messages": 1.2,
 }
 
 LOW_SIGNAL_CONTEXT_WORDS = {"영상", "브리핑", "발표", "현장", "확인", "온라인"}

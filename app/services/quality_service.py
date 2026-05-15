@@ -25,7 +25,8 @@ CHECKLIST_KEYS = {
 
 
 def enrich_article_quality(article: Article) -> Article:
-    article.region_tags = extract_regions(article.title, article.summary, article.body_text)
+    if not article.region_tags:
+        article.region_tags = extract_regions(article.title, article.summary, article.body_text)
     score, flags = quality_score(article)
     article.quality_score = score
     article.quality_flags = flags

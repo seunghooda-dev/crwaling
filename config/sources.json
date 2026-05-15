@@ -391,9 +391,9 @@
   },
   {
     "name": "Safe Korea Disaster Messages",
-    "source_type": "html",
+    "source_type": "api",
     "source_category": "disaster",
-    "url": "https://www.safekorea.go.kr/idsiSFK/neo/emp/er/emergency_erm.html",
+    "url": "https://www.safekorea.go.kr/safekorea-kor/nas-files/sms/MAINCALAMITYSMS.json",
     "enabled": true,
     "crawl_interval_seconds": 300,
     "timeout_seconds": 22,

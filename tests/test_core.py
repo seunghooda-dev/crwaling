@@ -6,12 +6,14 @@ from bs4 import BeautifulSoup
 
 from app.crawlers.html import HtmlCrawler
 from app.crawlers.http import crawler_headers, fetch_with_retry
+from app.crawlers.safe_korea import SafeKoreaDisasterMessageCrawler
 from app.database import SCHEMA
 from app.content import clean_html_text, extract_media_urls
 from app.models import Article, Source, SourceType
 from app.repository import count_articles, list_articles, list_source_quality, scheduler_status, set_app_state
 from app.services.ai_assist import build_ai_assist
 from app.services.notification_service import notify_search_matches
+from app.services.quality_service import enrich_article_quality
 from app.services.scoring import apply_newsroom_scoring
 from app.title_extractor import clean_title_text, split_title_summary
 
@@ -154,8 +156,8 @@ def test_source_quality_reports_zero_new_streak():
     conn.executescript(SCHEMA)
     conn.execute(
         """
-        INSERT INTO sources (name, source_type, source_category, url)
-        VALUES ('Source A', 'rss', 'news', 'https://example.com')
+        INSERT INTO sources (name, source_type, source_category, url, crawl_interval_seconds)
+        VALUES ('Source A', 'rss', 'news', 'https://example.com', 86400)
         """
     )
     conn.executemany(
@@ -176,8 +178,8 @@ def test_source_quality_distinguishes_duplicate_only_from_empty_fetch():
     conn.executescript(SCHEMA)
     conn.execute(
         """
-        INSERT INTO sources (name, source_type, source_category, url)
-        VALUES ('Source A', 'rss', 'news', 'https://example.com')
+        INSERT INTO sources (name, source_type, source_category, url, crawl_interval_seconds)
+        VALUES ('Source A', 'rss', 'news', 'https://example.com', 86400)
         """
     )
     conn.execute(
@@ -220,6 +222,34 @@ def test_source_quality_success_rate_excludes_canceled_runs():
     assert quality["canceled_runs"] == 1
     assert quality["measured_runs"] == 2
     assert quality["success_rate"] == 100.0
+
+
+def test_source_quality_latest_new_articles_clear_zero_label():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.execute(
+        """
+        INSERT INTO sources (name, source_type, source_category, url, crawl_interval_seconds)
+        VALUES ('Source A', 'rss', 'news', 'https://example.com', 86400)
+        """
+    )
+    conn.executemany(
+        """
+        INSERT INTO crawl_runs (source_name, started_at, status, new_article_count, fetched_article_count)
+        VALUES ('Source A', ?, 'success', ?, ?)
+        """,
+        [
+            ("2026-05-15 10:00:00", 0, 10),
+            ("2026-05-15 10:05:00", 0, 10),
+            ("2026-05-15 10:10:00", 5, 10),
+        ],
+    )
+
+    [quality] = list_source_quality(conn)
+    assert quality["last_new_article_count"] == 5
+    assert quality["zero_new_status"] == "ok"
+    assert quality["zero_new_label"] == "정상"
 
 
 def test_source_quality_flags_never_crawled_source():
@@ -283,6 +313,52 @@ def test_html_crawler_prefers_concise_title_attributes():
     )
 
     assert HtmlCrawler()._anchor_title(source, soup.a) == "정확한 기사 제목"
+
+
+def test_safe_korea_crawler_maps_disaster_message():
+    source = Source(
+        name="Safe Korea Disaster Messages",
+        source_type=SourceType.api,
+        source_category="disaster",
+        url="https://www.safekorea.go.kr/safekorea-kor/nas-files/sms/MAINCALAMITYSMS.json",
+    )
+    article = SafeKoreaDisasterMessageCrawler()._article_from_message(
+        source,
+        {
+            "smsTrsmSn": 258075,
+            "creatDt": "2026/04/21 10:46:25",
+            "msgCn": "오늘 10:38 김포시 공장 화재 발생. 주민은 이동하시고 차량은 우회하세요. [김포시]",
+            "emrgncyStepNm": "안전안내",
+            "dsstrSeNm": "화재",
+            "rcvAreaNm": "경기도 김포시 ",
+            "delYn": "N",
+        },
+    )
+
+    assert article is not None
+    assert article.title == "안전안내 · 화재 - 경기도 김포시"
+    assert article.source_type == "api"
+    assert article.published_at.isoformat() == "2026-04-21T10:46:25"
+    assert "화재 발생" in article.summary
+    assert article.region_tags == ["경기도 김포시"]
+    assert article.url.endswith("bbsOrdr=258075")
+
+
+def test_quality_keeps_explicit_source_regions():
+    article = Article(
+        source_name="Safe Korea Disaster Messages",
+        source_type="api",
+        source_category="disaster",
+        title="안전안내 · 산불 - 경상북도 봉화군",
+        url="https://example.com",
+        fingerprint="safe-korea",
+        summary="영농부산물 소각 금지 바랍니다.",
+        region_tags=["경상북도 봉화군"],
+    )
+
+    enriched = enrich_article_quality(article)
+    assert enriched.region_tags == ["경상북도 봉화군"]
+    assert "no_region" not in enriched.quality_flags
 
 
 def test_scheduler_status_includes_crawl_progress():

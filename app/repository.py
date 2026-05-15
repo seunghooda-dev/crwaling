@@ -893,6 +893,11 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
             item["zero_new_status"] = "low_success_rate"
             item["zero_new_label"] = "성공률 낮음"
             item["risk_score"] = 50
+        elif int(item.get("last_new_article_count") or 0) > 0:
+            item["risk_level"] = "normal"
+            item["zero_new_status"] = "ok"
+            item["zero_new_label"] = "정상"
+            item["risk_score"] = 0
         elif duplicate_only_streak >= 3:
             item["risk_level"] = "normal"
             item["zero_new_status"] = "duplicate_only"
