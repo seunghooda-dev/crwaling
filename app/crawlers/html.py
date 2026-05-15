@@ -1,11 +1,10 @@
-from time import sleep
 import re
 
 import httpx
 from bs4 import BeautifulSoup
 
-from app.config import settings
 from app.crawlers.base import Crawler
+from app.crawlers.http import crawler_headers, fetch_with_retry
 from app.models import Article, Source
 from app.text import article_fingerprint, canonicalize_url, normalize_space
 from app.title_extractor import split_title_summary
@@ -27,11 +26,8 @@ class HtmlCrawler(Crawler):
     """
 
     def crawl(self, source: Source) -> list[Article]:
-        headers = {
-            "User-Agent": settings.user_agent,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        }
-        response = self._get_with_retry(str(source.url), headers, source)
+        headers = crawler_headers(str(source.url), "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        response = fetch_with_retry(str(source.url), headers, source)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -167,22 +163,3 @@ class HtmlCrawler(Crawler):
         if published:
             summary = normalize_space(f"{summary} {published}")
         return title, summary or None
-
-    def _get_with_retry(self, url: str, headers: dict[str, str], source: Source) -> httpx.Response:
-        last_error: Exception | None = None
-        retries = source.max_retries if source.max_retries is not None else 2
-        timeout = source.timeout_seconds if source.timeout_seconds is not None else settings.request_timeout_seconds
-        for attempt in range(retries + 1):
-            try:
-                return httpx.get(
-                    url,
-                    headers=headers,
-                    timeout=timeout,
-                    follow_redirects=True,
-                )
-            except httpx.HTTPError as exc:
-                last_error = exc
-                sleep(0.6 * (attempt + 1))
-        if last_error is not None:
-            raise last_error
-        raise RuntimeError("HTML request failed")

@@ -1,9 +1,12 @@
 import sqlite3
 from datetime import datetime, timedelta
 
+import httpx
+
+from app.crawlers.http import crawler_headers, fetch_with_retry
 from app.database import SCHEMA
 from app.content import clean_html_text, extract_media_urls
-from app.models import Article
+from app.models import Article, Source, SourceType
 from app.repository import count_articles, list_articles, list_source_quality
 from app.services.ai_assist import build_ai_assist
 from app.services.notification_service import notify_search_matches
@@ -181,3 +184,32 @@ def test_source_quality_success_rate_excludes_canceled_runs():
     assert quality["canceled_runs"] == 1
     assert quality["measured_runs"] == 2
     assert quality["success_rate"] == 100.0
+
+
+def test_fetch_with_retry_retries_transient_status_codes():
+    calls = []
+    source = Source(
+        name="Source A",
+        source_type=SourceType.rss,
+        url="https://example.com/feed.xml",
+        max_retries=1,
+    )
+
+    def fake_get(url, **kwargs):
+        calls.append((url, kwargs))
+        request = httpx.Request("GET", url)
+        status = 503 if len(calls) == 1 else 200
+        return httpx.Response(status, text="ok", request=request)
+
+    response = fetch_with_retry(
+        "https://example.com/feed.xml",
+        crawler_headers("https://example.com/feed.xml", "application/rss+xml"),
+        source,
+        request_get=fake_get,
+        sleep_seconds=0,
+    )
+
+    assert response.status_code == 200
+    assert len(calls) == 2
+    assert calls[0][1]["follow_redirects"] is True
+    assert "ko-KR" in calls[0][1]["headers"]["Accept-Language"]
