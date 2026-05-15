@@ -177,6 +177,44 @@
         color: #fffefa;
       }
 
+      .utilitybar {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: auto auto auto 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .utilitybar button {
+        height: 28px;
+        padding: 0 9px;
+        font-size: 12px;
+      }
+
+      .utilitybar button.active {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fffefa;
+      }
+
+      .recent-searches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      .recent-searches button {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        border-color: rgba(8, 61, 119, 0.16);
+        background: var(--soft);
+        color: var(--accent-ink);
+      }
+
       input,
       select,
       textarea,
@@ -882,7 +920,7 @@
 
       .verification-actions {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
       }
 
@@ -925,6 +963,14 @@
 
         .toolbar {
           grid-template-columns: 1fr;
+        }
+
+        .utilitybar {
+          grid-template-columns: 1fr;
+        }
+
+        .recent-searches {
+          justify-content: flex-start;
         }
 
         input,
@@ -1002,6 +1048,12 @@
         <input id="dateTo" type="date" hidden />
       </div>
       <div class="sourcebar" id="sourcebar"></div>
+      <div class="utilitybar">
+        <button id="unreadOnly">미확인만</button>
+        <button id="resetFilters">초기화</button>
+        <button id="scrollTop">맨 위</button>
+        <div class="recent-searches" id="recentSearches"></div>
+      </div>
     </header>
     <main>
       <aside class="stack">
@@ -1093,11 +1145,14 @@
       const readKey = "newsroom-read-article-ids";
       const densityKey = "newsroom-card-density";
       const urgentThresholdKey = "newsroom-urgent-threshold";
+      const recentSearchKey = "newsroom-recent-searches";
+      const unreadOnlyKey = "newsroom-unread-only";
       const pageSize = 50;
       let activeCategory = "";
       let currentPage = 1;
       let articleLoadToken = 0;
       let urgentThreshold = Number(localStorage.getItem(urgentThresholdKey) || 4.5);
+      let unreadOnly = localStorage.getItem(unreadOnlyKey) === "1";
       let toastTimer = undefined;
       let lastArticleCount = undefined;
       let lastUrgentIds = new Set();
@@ -1105,9 +1160,12 @@
       let liveRefreshRunning = false;
       let liveSearchTimer = undefined;
       let crawlProgressTimer = undefined;
+      const unreadOnlyEl = document.querySelector("#unreadOnly");
+      const recentSearchesEl = document.querySelector("#recentSearches");
 
       document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
       document.querySelector("#density").value = document.body.dataset.density;
+      unreadOnlyEl.classList.toggle("active", unreadOnly);
 
       function showToast(message) {
         let toast = document.querySelector(".toast");
@@ -1244,6 +1302,90 @@
         }
       }
 
+      function readRecentSearches() {
+        try {
+          return JSON.parse(localStorage.getItem(recentSearchKey) || "[]");
+        } catch {
+          return [];
+        }
+      }
+
+      function rememberSearch(query) {
+        const value = String(query || "").trim();
+        if (!value) return;
+        const searches = readRecentSearches().filter((item) => item !== value);
+        searches.unshift(value);
+        localStorage.setItem(recentSearchKey, JSON.stringify(searches.slice(0, 8)));
+        renderRecentSearches();
+      }
+
+      function renderRecentSearches() {
+        const searches = readRecentSearches();
+        recentSearchesEl.innerHTML = searches.length
+          ? searches.map((query) => `<button data-recent-query="${escapeHtml(query)}">${escapeHtml(query)}</button>`).join("")
+          : "";
+      }
+
+      async function copyText(value) {
+        const text = String(value || "").trim();
+        if (!text) return;
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+        const field = document.createElement("textarea");
+        field.value = text;
+        field.style.position = "fixed";
+        field.style.left = "-9999px";
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand("copy");
+        field.remove();
+      }
+
+      function articleBriefText(item) {
+        const display = articleDisplayParts(item);
+        const time = formatArticleTime(item.published_at || item.collected_at) || "-";
+        const body = item.body_text || display.body || item.summary || "";
+        const keywords = parseJsonList(item.keywords).slice(0, 5).join(", ");
+        return [
+          `[제목] ${display.title}`,
+          `[출처] ${item.source_name} / ${categoryLabel(item.source_category)} / ${time}`,
+          `[점수] ${Number(item.importance_score || 0).toFixed(1)} / 품질 ${Number(item.quality_score || 0).toFixed(0)}`,
+          keywords ? `[키워드] ${keywords}` : "",
+          body ? `[기사내용] ${body}` : "",
+          `[원문] ${item.url}`,
+        ]
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      async function copyArticleBrief(id) {
+        const item = await fetchJson(`/articles/${id}`);
+        await copyText(articleBriefText(item));
+        showToast("기사 요약을 복사했습니다.");
+      }
+
+      function resetFilters() {
+        document.querySelector("#q").value = "";
+        sourceEl.value = "";
+        document.querySelector("#status").value = "";
+        document.querySelector("#period").value = "";
+        document.querySelector("#mode").value = "latest";
+        document.querySelector("#sort").value = "latest";
+        document.querySelector("#dateFrom").value = "";
+        document.querySelector("#dateTo").value = "";
+        document.querySelector("#dateFrom").hidden = true;
+        document.querySelector("#dateTo").hidden = true;
+        activeCategory = "";
+        unreadOnly = false;
+        localStorage.setItem(unreadOnlyKey, "0");
+        unreadOnlyEl.classList.remove("active");
+        document.querySelectorAll("#quickbar button").forEach((button) => button.classList.toggle("active", button.dataset.category === ""));
+        document.querySelectorAll("#sourcebar button").forEach((button) => button.classList.toggle("active", button.dataset.sourceName === ""));
+        currentPage = 1;
+      }
+
       function formatBytes(value) {
         const size = Number(value || 0);
         if (size > 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
@@ -1371,6 +1513,7 @@
               </select>
               <input data-field="assignee" placeholder="담당자" value="${escapeHtml(item.assignee || "")}" />
               <button data-action="save">저장</button>
+              <button data-action="copy">복사</button>
               <button data-action="assist">AI 보조</button>
               <button data-action="enrich">상세 수집</button>
               <button data-action="detail">상세</button>
@@ -1533,8 +1676,9 @@
             currentPage = totalPages;
             return loadArticles({ page: currentPage });
           }
-          articlesEl.innerHTML = items.length
-            ? items.map(articleTemplate).join("")
+          const visibleItems = unreadOnly ? items.filter((item) => !readIds().has(String(item.id))) : items;
+          articlesEl.innerHTML = visibleItems.length
+            ? visibleItems.map(articleTemplate).join("")
             : '<div class="empty">표시할 기사가 없습니다.</div>';
           if (mode === "latest" && totalPages > 1) {
             articlesEl.insertAdjacentHTML("beforeend", paginationTemplate(currentPage, totalPages));
@@ -1548,7 +1692,8 @@
           const start = items.length ? offset + 1 : 0;
           const end = offset + items.length;
           const resultCount = countInfo ? `${start}-${end}/${countInfo.count}건` : `${items.length}건`;
-          liveStatusEl.textContent = `${resultLabel} ${resultCount} · 미확인 ${unread}건 · ${new Date().toLocaleTimeString("ko-KR")}`;
+          const unreadText = unreadOnly ? `미확인 표시 ${visibleItems.length}/${items.length}건` : `미확인 ${unread}건`;
+          liveStatusEl.textContent = `${resultLabel} ${resultCount} · ${unreadText} · ${new Date().toLocaleTimeString("ko-KR")}`;
         } finally {
           if (requestToken === articleLoadToken) setArticleLoading(false);
         }
@@ -1750,6 +1895,7 @@
             <div class="verification-actions">
               <a class="primary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">원문 열기</a>
               <button data-action="panel-assist" data-id="${item.id}">AI 검토</button>
+              <button data-action="panel-copy" data-id="${item.id}">요약 복사</button>
             </div>
             <div class="verification-brief">
               <strong>검증 요약</strong>
@@ -1851,6 +1997,7 @@
             <div class="urgent-actions">
               <button data-urgent-action="detail" data-id="${item.id}">상세</button>
               <a class="primary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" data-urgent-action="open">원문</a>
+              <button data-urgent-action="copy" data-id="${item.id}">복사</button>
               <button data-urgent-action="ready" data-id="${item.id}">방송후보</button>
             </div>
           </div>
@@ -2140,6 +2287,7 @@
 
       function runSearch() {
         const q = document.querySelector("#q").value.trim();
+        rememberSearch(q);
         if (!q) {
           document.querySelector("#mode").value = "latest";
           document.querySelector("#sort").value = "latest";
@@ -2182,6 +2330,26 @@
         runSearch();
       });
       liveSearchButtonEl.addEventListener("click", toggleLiveSearch);
+      unreadOnlyEl.addEventListener("click", () => {
+        unreadOnly = !unreadOnly;
+        localStorage.setItem(unreadOnlyKey, unreadOnly ? "1" : "0");
+        unreadOnlyEl.classList.toggle("active", unreadOnly);
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+      });
+      document.querySelector("#resetFilters").addEventListener("click", () => {
+        resetFilters();
+        refreshDashboard().catch((error) => showToast(error.message));
+      });
+      document.querySelector("#scrollTop").addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      recentSearchesEl.addEventListener("click", (event) => {
+        const query = event.target.dataset?.recentQuery;
+        if (!query) return;
+        document.querySelector("#q").value = query;
+        document.querySelector("#mode").value = "latest";
+        loadArticles({ refreshFirst: true, resetPage: true }).catch((error) => showToast(error.message));
+      });
       document.querySelector("#q").addEventListener("keydown", (event) => {
         if (event.key === "Enter") runSearch();
       });
@@ -2210,6 +2378,7 @@
         if (!query) return;
         document.querySelector("#q").value = query;
         document.querySelector("#mode").value = "latest";
+        rememberSearch(query);
         loadArticles({ refreshFirst: true, resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#quickbar").addEventListener("click", (event) => {
@@ -2291,6 +2460,10 @@
                 return Promise.all([loadUrgentRail(), loadArticles()]);
               })
               .catch((error) => showToast(error.message));
+            return;
+          }
+          if (action.dataset.urgentAction === "copy") {
+            copyArticleBrief(id).catch((error) => showToast(error.message));
             return;
           }
           if (action.dataset.urgentAction === "detail") {
@@ -2381,12 +2554,17 @@
           return;
         }
         if (action === "save") saveWorkflow(article);
+        if (action === "copy") copyArticleBrief(article.dataset.id).catch((error) => showToast(error.message));
         if (action === "assist") buildAssist(article);
         if (action === "enrich") enrichArticle(article);
         if (action === "detail") showDetail(article.dataset.id);
       });
 
       detailPanelEl.addEventListener("click", async (event) => {
+        if (event.target.dataset.action === "panel-copy") {
+          await copyArticleBrief(event.target.dataset.id);
+          return;
+        }
         if (event.target.dataset.action === "panel-assist") {
           const id = event.target.dataset.id;
           await fetchJson(`/articles/${id}/ai-assist`, { method: "POST" });
@@ -2441,6 +2619,7 @@
       async function bootDashboard() {
         liveStatusEl.textContent = "초기 화면 로딩 중";
         await loadSources();
+        renderRecentSearches();
         await Promise.all([loadArticles(), loadStats(), loadSchedulerStatus()]);
         liveStatusEl.textContent = `초기 화면 준비 완료 · ${new Date().toLocaleTimeString("ko-KR")}`;
         scheduleSecondaryRefresh();
