@@ -641,6 +641,7 @@ def finish_crawl_run(
     run_id: int,
     status: str,
     new_article_count: int = 0,
+    fetched_article_count: int = 0,
     error_message: str | None = None,
 ) -> None:
     conn.execute(
@@ -648,11 +649,12 @@ def finish_crawl_run(
         UPDATE crawl_runs
         SET finished_at = CURRENT_TIMESTAMP,
             status = ?,
+            fetched_article_count = ?,
             new_article_count = ?,
             error_message = ?
         WHERE id = ?
         """,
-        (status, new_article_count, error_message, run_id),
+        (status, fetched_article_count, new_article_count, error_message, run_id),
     )
 
 
@@ -771,6 +773,20 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
                 LIMIT 1
             ) AS last_new_article_count,
             (
+                SELECT cr.fetched_article_count
+                FROM crawl_runs cr
+                WHERE cr.source_name = s.name
+                ORDER BY cr.started_at DESC
+                LIMIT 1
+            ) AS last_fetched_article_count,
+            (
+                SELECT CAST((julianday('now') - julianday(cr.started_at)) * 86400 AS INTEGER)
+                FROM crawl_runs cr
+                WHERE cr.source_name = s.name
+                ORDER BY cr.started_at DESC
+                LIMIT 1
+            ) AS seconds_since_last_run,
+            (
                 SELECT COUNT(1)
                 FROM crawl_runs cr
                 WHERE cr.source_name = s.name
@@ -785,6 +801,38 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
                       LIMIT 3
                   )
             ) AS zero_new_streak
+            ,
+            (
+                SELECT COUNT(1)
+                FROM crawl_runs cr
+                WHERE cr.source_name = s.name
+                  AND cr.status = 'success'
+                  AND COALESCE(cr.fetched_article_count, 0) = 0
+                  AND cr.id IN (
+                      SELECT recent.id
+                      FROM crawl_runs recent
+                      WHERE recent.source_name = s.name
+                        AND recent.status = 'success'
+                      ORDER BY recent.started_at DESC
+                      LIMIT 3
+                  )
+            ) AS empty_fetch_streak,
+            (
+                SELECT COUNT(1)
+                FROM crawl_runs cr
+                WHERE cr.source_name = s.name
+                  AND cr.status = 'success'
+                  AND cr.new_article_count = 0
+                  AND COALESCE(cr.fetched_article_count, 0) > 0
+                  AND cr.id IN (
+                      SELECT recent.id
+                      FROM crawl_runs recent
+                      WHERE recent.source_name = s.name
+                        AND recent.status = 'success'
+                      ORDER BY recent.started_at DESC
+                      LIMIT 3
+                  )
+            ) AS duplicate_only_streak
         FROM sources s
         ORDER BY s.enabled DESC, s.source_category, s.name
         """
@@ -798,27 +846,63 @@ def list_source_quality(conn: sqlite3.Connection) -> list[dict]:
         item["measured_runs"] = measured_runs
         item["success_rate"] = round(success_runs / measured_runs * 100, 1) if measured_runs else None
         zero_new_streak = item.get("zero_new_streak") or 0
+        empty_fetch_streak = item.get("empty_fetch_streak") or 0
+        duplicate_only_streak = item.get("duplicate_only_streak") or 0
         article_count = item.get("article_count") or 0
-        if item.get("last_status") == "failed":
+        interval = int(item.get("crawl_interval_seconds") or 300)
+        seconds_since_last_run = item.get("seconds_since_last_run")
+        stale_warning_seconds = max(interval * 3, 900)
+        stale_danger_seconds = max(interval * 6, 1800)
+        if not item.get("enabled"):
+            item["risk_level"] = "normal"
+            item["zero_new_status"] = "disabled"
+            item["zero_new_label"] = "비활성"
+            item["risk_score"] = 0
+        elif item.get("last_status") == "failed":
             item["risk_level"] = "danger"
             item["zero_new_status"] = "failed"
             item["zero_new_label"] = "최근 실패"
             item["risk_score"] = 100
-        elif zero_new_streak >= 3 and article_count == 0:
+        elif item.get("last_started_at") is None:
+            item["risk_level"] = "danger"
+            item["zero_new_status"] = "never_crawled"
+            item["zero_new_label"] = "미수집"
+            item["risk_score"] = 95
+        elif seconds_since_last_run is not None and seconds_since_last_run > stale_danger_seconds:
+            item["risk_level"] = "danger"
+            item["zero_new_status"] = "stale"
+            item["zero_new_label"] = "수집 지연"
+            item["risk_score"] = 90
+        elif empty_fetch_streak >= 3 and article_count == 0:
             item["risk_level"] = "danger"
             item["zero_new_status"] = "selector_check"
             item["zero_new_label"] = "선택자 점검 필요"
-            item["risk_score"] = 80 + zero_new_streak
-        elif zero_new_streak >= 3:
+            item["risk_score"] = 80 + empty_fetch_streak
+        elif seconds_since_last_run is not None and seconds_since_last_run > stale_warning_seconds:
             item["risk_level"] = "warning"
-            item["zero_new_status"] = "no_new_watch"
-            item["zero_new_label"] = "0건 반복"
-            item["risk_score"] = 50 + zero_new_streak
+            item["zero_new_status"] = "stale_watch"
+            item["zero_new_label"] = "수집 지연"
+            item["risk_score"] = 65
+        elif empty_fetch_streak >= 3:
+            item["risk_level"] = "warning"
+            item["zero_new_status"] = "empty_fetch_watch"
+            item["zero_new_label"] = "빈 응답 반복"
+            item["risk_score"] = 55 + empty_fetch_streak
+        elif measured_runs >= 3 and item.get("success_rate") is not None and item["success_rate"] < 70:
+            item["risk_level"] = "warning"
+            item["zero_new_status"] = "low_success_rate"
+            item["zero_new_label"] = "성공률 낮음"
+            item["risk_score"] = 50
+        elif duplicate_only_streak >= 3:
+            item["risk_level"] = "normal"
+            item["zero_new_status"] = "duplicate_only"
+            item["zero_new_label"] = "중복만 확인"
+            item["risk_score"] = 8
         elif zero_new_streak:
             item["risk_level"] = "normal"
             item["zero_new_status"] = "normal_zero"
-            item["zero_new_label"] = "정상 0건"
-            item["risk_score"] = 10 + zero_new_streak
+            item["zero_new_label"] = "새 기사 없음"
+            item["risk_score"] = 5 + zero_new_streak
         else:
             item["risk_level"] = "normal"
             item["zero_new_status"] = "ok"

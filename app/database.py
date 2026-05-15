@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS crawl_runs (
     started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     finished_at TEXT,
     status TEXT NOT NULL,
+    fetched_article_count INTEGER NOT NULL DEFAULT 0,
     new_article_count INTEGER NOT NULL DEFAULT 0,
     error_message TEXT
 );
@@ -113,6 +114,11 @@ SOURCE_MIGRATIONS = {
     "source_category": "ALTER TABLE sources ADD COLUMN source_category TEXT NOT NULL DEFAULT 'news'",
     "timeout_seconds": "ALTER TABLE sources ADD COLUMN timeout_seconds REAL",
     "max_retries": "ALTER TABLE sources ADD COLUMN max_retries INTEGER",
+}
+
+
+CRAWL_RUN_MIGRATIONS = {
+    "fetched_article_count": "ALTER TABLE crawl_runs ADD COLUMN fetched_article_count INTEGER NOT NULL DEFAULT 0",
 }
 
 
@@ -175,6 +181,12 @@ def init_db() -> None:
         }
         for column, statement in SOURCE_MIGRATIONS.items():
             if column not in existing_source_columns:
+                conn.execute(statement)
+        existing_crawl_run_columns = {
+            row["name"] for row in conn.execute("PRAGMA table_info(crawl_runs)").fetchall()
+        }
+        for column, statement in CRAWL_RUN_MIGRATIONS.items():
+            if column not in existing_crawl_run_columns:
                 conn.execute(statement)
         conn.execute(
             """

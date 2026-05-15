@@ -122,6 +122,39 @@ def source_quality(conn=Depends(db_session)) -> list[dict]:
     return list_source_quality(conn)
 
 
+@app.get("/coverage/overview")
+def coverage_overview(conn=Depends(db_session)) -> dict:
+    quality = list_source_quality(conn)
+    enabled = [source for source in quality if source.get("enabled")]
+    danger = [source for source in enabled if source.get("risk_level") == "danger"]
+    warning = [source for source in enabled if source.get("risk_level") == "warning"]
+    stale = [
+        source
+        for source in enabled
+        if source.get("zero_new_status") in {"stale", "stale_watch", "never_crawled"}
+    ]
+    empty = [
+        source
+        for source in enabled
+        if source.get("zero_new_status") in {"selector_check", "empty_fetch_watch"}
+    ]
+    failed = [source for source in enabled if source.get("last_status") == "failed"]
+    risks = sorted(
+        danger + warning,
+        key=lambda source: (-int(source.get("risk_score") or 0), source.get("name") or ""),
+    )[:8]
+    return {
+        "ok": not danger,
+        "enabled_source_count": len(enabled),
+        "danger_count": len(danger),
+        "warning_count": len(warning),
+        "failed_count": len(failed),
+        "stale_count": len(stale),
+        "empty_fetch_count": len(empty),
+        "risks": risks,
+    }
+
+
 @app.patch("/sources/{source_id}")
 def update_source(source_id: int, payload: SourceUpdate, conn=Depends(db_session)) -> dict:
     current = conn.execute("SELECT * FROM sources WHERE id = ?", (source_id,)).fetchone()
@@ -201,6 +234,9 @@ def crawl_refresh(payload: CrawlRefreshRequest, conn=Depends(db_session)) -> dic
         "new_article_count": sum(count for count in results.values() if count > 0),
         "search_match_notification_count": notified_count,
         "failed_source_count": sum(1 for count in results.values() if count < 0),
+        "failed_source_names": [name for name, count in results.items() if count < 0],
+        "empty_source_count": sum(1 for count in fetched_results.values() if count == 0),
+        "empty_source_names": [name for name, count in fetched_results.items() if count == 0],
         "canceled": bool(crawl_result.get("canceled")),
         "elapsed_ms": elapsed_ms,
     }

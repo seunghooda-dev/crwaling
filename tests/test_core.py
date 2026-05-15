@@ -165,8 +165,40 @@ def test_source_quality_reports_zero_new_streak():
 
     [quality] = list_source_quality(conn)
     assert quality["zero_new_streak"] == 3
+    assert quality["empty_fetch_streak"] == 3
     assert quality["zero_new_status"] == "selector_check"
     assert quality["risk_level"] == "danger"
+
+
+def test_source_quality_distinguishes_duplicate_only_from_empty_fetch():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.execute(
+        """
+        INSERT INTO sources (name, source_type, source_category, url)
+        VALUES ('Source A', 'rss', 'news', 'https://example.com')
+        """
+    )
+    conn.execute(
+        """
+        INSERT INTO articles (source_name, source_type, title, url, fingerprint)
+        VALUES ('Source A', 'rss', '기존 기사', 'https://article', 'article')
+        """
+    )
+    conn.executemany(
+        """
+        INSERT INTO crawl_runs (source_name, status, new_article_count, fetched_article_count)
+        VALUES ('Source A', 'success', 0, ?)
+        """,
+        [(12,), (11,), (10,)],
+    )
+
+    [quality] = list_source_quality(conn)
+    assert quality["duplicate_only_streak"] == 3
+    assert quality["empty_fetch_streak"] == 0
+    assert quality["zero_new_status"] == "duplicate_only"
+    assert quality["risk_level"] == "normal"
 
 
 def test_source_quality_success_rate_excludes_canceled_runs():
@@ -188,6 +220,22 @@ def test_source_quality_success_rate_excludes_canceled_runs():
     assert quality["canceled_runs"] == 1
     assert quality["measured_runs"] == 2
     assert quality["success_rate"] == 100.0
+
+
+def test_source_quality_flags_never_crawled_source():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(SCHEMA)
+    conn.execute(
+        """
+        INSERT INTO sources (name, source_type, source_category, url)
+        VALUES ('Source A', 'rss', 'news', 'https://example.com')
+        """
+    )
+
+    [quality] = list_source_quality(conn)
+    assert quality["zero_new_status"] == "never_crawled"
+    assert quality["risk_level"] == "danger"
 
 
 def test_fetch_with_retry_retries_transient_status_codes():

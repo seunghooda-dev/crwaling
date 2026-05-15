@@ -220,6 +220,106 @@
     "max_retries": 2
   },
   {
+    "name": "Newsis Breaking RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.newsis.com/RSS/sokbo.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Newsis Society RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.newsis.com/RSS/society.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Newsis Metro RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.newsis.com/RSS/met.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Newsis Local RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.newsis.com/RSS/country.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Newsis Health RSS",
+    "source_type": "rss",
+    "source_category": "health",
+    "url": "https://www.newsis.com/RSS/health.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Etoday All RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://rss.etoday.co.kr/eto/etoday_news_all.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Etoday Society RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://rss.etoday.co.kr/eto/society_news.xml",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Maeil Business Society RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "https://www.mk.co.kr/rss/50400012/",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Pressian Latest RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "http://www.pressian.com/api/v3/site/rss/news",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "Pressian Society RSS",
+    "source_type": "rss",
+    "source_category": "news",
+    "url": "http://www.pressian.com/api/v3/site/rss/section/68",
+    "enabled": true,
+    "crawl_interval_seconds": 300,
+    "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
     "name": "Korea Policy Press Releases",
     "source_type": "rss",
     "source_category": "government",

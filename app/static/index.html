@@ -180,7 +180,7 @@
       .utilitybar {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: auto auto auto 1fr;
+        grid-template-columns: auto auto auto auto 1fr;
         gap: 8px;
         align-items: center;
       }
@@ -195,6 +195,17 @@
         border-color: var(--accent);
         background: var(--accent);
         color: #fffefa;
+      }
+
+      .mission-toggle.active {
+        border-color: var(--urgent);
+        background: var(--urgent);
+        color: #fffefa;
+      }
+
+      body[data-mission="on"] h1::after {
+        content: "BREAKING";
+        background: var(--signal);
       }
 
       .recent-searches {
@@ -653,6 +664,51 @@
         gap: 8px;
       }
 
+      .coverage-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+      }
+
+      .coverage-card {
+        display: grid;
+        gap: 2px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fffefa;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .coverage-card strong {
+        color: var(--ink);
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .coverage-card.danger {
+        border-color: rgba(109, 26, 54, 0.28);
+        background: var(--red-soft);
+        color: var(--wine);
+      }
+
+      .coverage-card.warning {
+        border-color: rgba(228, 87, 46, 0.32);
+        background: var(--amber-soft);
+        color: #8f331c;
+      }
+
+      .coverage-risk {
+        display: grid;
+        gap: 3px;
+        padding: 8px;
+        border-left: 3px solid var(--warn);
+        background: #fffefa;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
       .urgent-summary {
         display: grid;
         gap: 8px;
@@ -686,7 +742,7 @@
 
       .urgent-controls {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 6px;
       }
 
@@ -1049,6 +1105,7 @@
       </div>
       <div class="sourcebar" id="sourcebar"></div>
       <div class="utilitybar">
+        <button id="missionMode" class="mission-toggle">속보모드</button>
         <button id="unreadOnly">미확인만</button>
         <button id="resetFilters">초기화</button>
         <button id="scrollTop">맨 위</button>
@@ -1060,6 +1117,10 @@
         <section class="panel">
           <h2>긴급 상단</h2>
           <div class="side-body urgent-rail" id="urgentRail"></div>
+        </section>
+        <section class="panel">
+          <h2>취재 감시망</h2>
+          <div class="side-body" id="coverageSnapshot"></div>
         </section>
         <section class="panel">
           <h2>수집 상태</h2>
@@ -1136,6 +1197,7 @@
       const searchButtonEl = document.querySelector("#search");
       const liveSearchButtonEl = document.querySelector("#liveSearch");
       const urgentRailEl = document.querySelector("#urgentRail");
+      const coverageSnapshotEl = document.querySelector("#coverageSnapshot");
       const sourceWarningsEl = document.querySelector("#sourceWarnings");
       const opsStatusEl = document.querySelector("#opsStatus");
       const sourceQualityEl = document.querySelector("#sourceQuality");
@@ -1147,25 +1209,30 @@
       const urgentThresholdKey = "newsroom-urgent-threshold";
       const recentSearchKey = "newsroom-recent-searches";
       const unreadOnlyKey = "newsroom-unread-only";
+      const missionModeKey = "newsroom-mission-mode";
       const pageSize = 50;
       let activeCategory = "";
       let currentPage = 1;
       let articleLoadToken = 0;
       let urgentThreshold = Number(localStorage.getItem(urgentThresholdKey) || 4.5);
       let unreadOnly = localStorage.getItem(unreadOnlyKey) === "1";
+      let missionMode = localStorage.getItem(missionModeKey) === "1";
       let toastTimer = undefined;
       let lastArticleCount = undefined;
       let lastUrgentIds = new Set();
       let selectedArticleId = undefined;
       let liveRefreshRunning = false;
       let liveSearchTimer = undefined;
+      let missionStartedLive = false;
       let crawlProgressTimer = undefined;
       const unreadOnlyEl = document.querySelector("#unreadOnly");
+      const missionModeEl = document.querySelector("#missionMode");
       const recentSearchesEl = document.querySelector("#recentSearches");
 
       document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
       document.querySelector("#density").value = document.body.dataset.density;
       unreadOnlyEl.classList.toggle("active", unreadOnly);
+      renderMissionMode();
 
       function showToast(message) {
         let toast = document.querySelector(".toast");
@@ -1177,6 +1244,65 @@
         toast.textContent = message;
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => toast.remove(), 4200);
+      }
+
+      function renderMissionMode() {
+        document.body.dataset.mission = missionMode ? "on" : "off";
+        missionModeEl.classList.toggle("active", missionMode);
+        missionModeEl.textContent = missionMode ? "속보모드 ON" : "속보모드";
+        missionModeEl.title = missionMode
+          ? "24시간, 최신순, 미확인 중심으로 전체 출처를 1분마다 감시합니다."
+          : "놓치면 안 되는 상황에서 감시 조건을 속보 기준으로 맞춥니다.";
+      }
+
+      function applyMissionDefaults() {
+        document.querySelector("#period").value = "1";
+        document.querySelector("#mode").value = "latest";
+        document.querySelector("#sort").value = "latest";
+        document.querySelector("#status").value = "";
+        sourceEl.value = "";
+        activeCategory = "";
+        document.querySelectorAll("#quickbar button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.category === "");
+        });
+        document.querySelectorAll("#sourcebar button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.sourceName === "");
+        });
+        document.querySelector("#dateFrom").hidden = true;
+        document.querySelector("#dateTo").hidden = true;
+        document.querySelector("#dateFrom").value = "";
+        document.querySelector("#dateTo").value = "";
+        urgentThreshold = 3.5;
+        localStorage.setItem(urgentThresholdKey, String(urgentThreshold));
+        if (!unreadOnly) {
+          unreadOnly = true;
+          localStorage.setItem(unreadOnlyKey, "1");
+          unreadOnlyEl.classList.add("active");
+        }
+      }
+
+      function toggleMissionMode() {
+        missionMode = !missionMode;
+        localStorage.setItem(missionModeKey, missionMode ? "1" : "0");
+        renderMissionMode();
+        if (missionMode) {
+          applyMissionDefaults();
+          showToast("속보모드: 전체 출처, 24시간, 최신순, 미확인 중심으로 감시합니다.");
+          if (!liveSearchTimer) {
+            missionStartedLive = true;
+            toggleLiveSearch();
+            return;
+          }
+          runSearch();
+          return;
+        }
+        if (missionStartedLive && liveSearchTimer) {
+          missionStartedLive = false;
+          toggleLiveSearch();
+          return;
+        }
+        missionStartedLive = false;
+        refreshDashboard().catch((error) => showToast(error.message));
       }
 
       async function fetchJson(url, options = {}) {
@@ -1224,16 +1350,20 @@
           });
           const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
           const failedText = result.failed_source_count ? ` · 실패 ${result.failed_source_count}곳` : "";
+          const emptyText = result.empty_source_count ? ` · 빈 응답 ${result.empty_source_count}곳` : "";
           const notifyText = result.search_match_notification_count ? ` · 알림 ${result.search_match_notification_count}건` : "";
           const fetchedText = Number.isFinite(result.fetched_article_count) ? `, 확인 기사 ${result.fetched_article_count}건` : "";
           const canceledText = result.canceled ? " · 중지됨" : "";
-          showToast(`실시간 수집 완료: ${result.source_count}곳 확인${fetchedText}, 새 기사 ${result.new_article_count}건 (${seconds}초)${notifyText}${failedText}${canceledText}`);
+          const failedNames = (result.failed_source_names || []).slice(0, 3).join(", ");
+          const emptyNames = (result.empty_source_names || []).slice(0, 3).join(", ");
+          const riskNames = failedNames || emptyNames;
+          showToast(`실시간 수집 완료: ${result.source_count}곳 확인${fetchedText}, 새 기사 ${result.new_article_count}건 (${seconds}초)${notifyText}${failedText}${emptyText}${canceledText}${riskNames ? ` · 점검 ${riskNames}` : ""}`);
           return result;
         } finally {
           liveRefreshRunning = false;
           searchButtonEl.textContent = originalLabel;
           stopCrawlProgressPolling();
-          loadSchedulerStatus().catch((error) => showToast(error.message));
+          Promise.all([loadSchedulerStatus(), loadCoverageOverview(), loadSourceQuality()]).catch((error) => showToast(error.message));
         }
       }
 
@@ -1378,6 +1508,15 @@
         document.querySelector("#dateFrom").hidden = true;
         document.querySelector("#dateTo").hidden = true;
         activeCategory = "";
+        missionMode = false;
+        localStorage.setItem(missionModeKey, "0");
+        renderMissionMode();
+        if (missionStartedLive && liveSearchTimer) {
+          clearInterval(liveSearchTimer);
+          liveSearchTimer = undefined;
+          setLiveSearchState(false);
+        }
+        missionStartedLive = false;
         unreadOnly = false;
         localStorage.setItem(unreadOnlyKey, "0");
         unreadOnlyEl.classList.remove("active");
@@ -1559,6 +1698,9 @@
           머니투데이: ["moneytoday"],
           세계: ["segye"],
           오마이: ["ohmynews"],
+          뉴시스: ["newsis"],
+          이투데이: ["etoday"],
+          프레시안: ["pressian"],
           경찰: ["police"],
           소방: ["fire"],
           기상: ["weather"],
@@ -1961,6 +2103,7 @@
               <span class="urgent-metric"><strong>${sourceCount}</strong>출처</span>
             </div>
             <div class="urgent-controls">
+              ${urgentThresholdButton(3.5, "속보")}
               ${urgentThresholdButton(4.5, "기본")}
               ${urgentThresholdButton(5.5, "높음")}
               ${urgentThresholdButton(6.5, "최상")}
@@ -2082,6 +2225,39 @@
         `;
       }
 
+      async function loadCoverageOverview() {
+        const overview = await fetchJson("/coverage/overview");
+        const level = overview.danger_count ? "danger" : overview.warning_count ? "warning" : "";
+        const risks = overview.risks || [];
+        coverageSnapshotEl.innerHTML = `
+          <div class="coverage-grid">
+            <span class="coverage-card"><strong>${overview.enabled_source_count}</strong>활성 출처</span>
+            <span class="coverage-card ${level}"><strong>${overview.danger_count}</strong>위험</span>
+            <span class="coverage-card ${overview.warning_count ? "warning" : ""}"><strong>${overview.warning_count}</strong>주의</span>
+            <span class="coverage-card ${overview.empty_fetch_count ? "warning" : ""}"><strong>${overview.empty_fetch_count}</strong>빈 응답</span>
+          </div>
+          <div class="summary">
+            ${overview.ok ? "현재 치명 위험은 없습니다." : "수집 실패·지연·빈 응답 출처를 먼저 확인해야 합니다."}
+            ${overview.stale_count ? ` 지연 ${overview.stale_count}곳.` : ""}
+          </div>
+          ${
+            risks.length
+              ? risks
+                  .slice(0, 4)
+                  .map(
+                    (source) => `
+                      <div class="coverage-risk">
+                        <strong>${escapeHtml(source.name)}</strong>
+                        <span>${escapeHtml(source.zero_new_label || "점검")} · ${escapeHtml(sourceWarningText(source))}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : ""
+          }
+        `;
+      }
+
       async function loadSourceQuality() {
         const quality = await fetchJson("/sources/quality");
         const warnings = quality.filter(
@@ -2105,6 +2281,12 @@
           .slice(0, 12)
           .map((source) => {
             const rate = source.success_rate === null ? "-" : `${source.success_rate}%`;
+            const fetched = Number.isFinite(Number(source.last_fetched_article_count))
+              ? Number(source.last_fetched_article_count)
+              : 0;
+            const lag = source.seconds_since_last_run
+              ? `${Math.round(Number(source.seconds_since_last_run) / 60)}분 전`
+              : "기록 없음";
             const rowClass =
               source.risk_level === "danger"
                 ? "quality-row failed"
@@ -2115,8 +2297,8 @@
               <div class="${rowClass}">
                 <strong>${escapeHtml(source.name)}</strong>
                 <span>${rate}</span>
-                <span>${escapeHtml(categoryLabel(source.source_category))} · 기사 ${source.article_count}</span>
-                <span>${escapeHtml(source.zero_new_label || "정상")} · 0건 ${Number(source.zero_new_streak || 0)}회</span>
+                <span>${escapeHtml(categoryLabel(source.source_category))} · 누적 ${source.article_count} · 확인 ${fetched}</span>
+                <span>${escapeHtml(source.zero_new_label || "정상")} · ${escapeHtml(lag)}</span>
               </div>
             `;
           })
@@ -2127,11 +2309,23 @@
         if (source.last_status === "failed") {
           return source.last_error_message || "최근 수집이 실패했습니다. URL, 리다이렉트, 접속 차단 여부를 확인하세요.";
         }
+        if (source.zero_new_status === "never_crawled") {
+          return "아직 한 번도 수집되지 않았습니다. 출처 등록 직후라면 즉시 수집을 실행하세요.";
+        }
+        if (source.zero_new_status === "stale" || source.zero_new_status === "stale_watch") {
+          return "예정된 주기보다 수집이 늦어졌습니다. 자동 수집기 실행 여부와 네트워크 상태를 확인하세요.";
+        }
         if (source.zero_new_status === "selector_check") {
           return "기사 누적이 없고 0건 수집이 반복됐습니다. 사이트 구조나 선택자 변경 가능성이 큽니다.";
         }
-        if (source.zero_new_status === "no_new_watch") {
-          return `최근 성공 수집 ${source.zero_new_streak}회가 모두 0건입니다. 실제 새 기사 없음인지 선택자 문제인지 확인하세요.`;
+        if (source.zero_new_status === "empty_fetch_watch") {
+          return `최근 성공 수집 ${source.empty_fetch_streak}회가 모두 빈 응답입니다. 목록 선택자나 접속 차단 여부를 확인하세요.`;
+        }
+        if (source.zero_new_status === "low_success_rate") {
+          return "최근 수집 성공률이 낮습니다. timeout, 재시도, 사이트 접속 차단 가능성을 확인하세요.";
+        }
+        if (source.zero_new_status === "duplicate_only") {
+          return "기사 목록은 읽었지만 새 URL은 없었습니다. 수집기는 동작 중입니다.";
         }
         return "현재 정상 범위입니다.";
       }
@@ -2148,7 +2342,7 @@
             (run) => `
               <div class="run ${run.status === "failed" ? "failed" : ""}">
                 <strong>${escapeHtml(run.source_name)}</strong><br />
-                ${escapeHtml(run.status)} · 신규 ${run.new_article_count}건 · ${escapeHtml(run.started_at)}
+                ${escapeHtml(run.status)} · 확인 ${Number(run.fetched_article_count || 0)}건 · 신규 ${run.new_article_count}건 · ${escapeHtml(run.started_at)}
                 ${run.error_message ? `<br /><span>${escapeHtml(run.error_message)}</span>` : ""}
               </div>
             `,
@@ -2183,6 +2377,9 @@
           "머니투데이",
           "세계",
           "오마이",
+          "뉴시스",
+          "이투데이",
+          "프레시안",
           "경찰",
           "소방",
           "기상",
@@ -2330,6 +2527,7 @@
         runSearch();
       });
       liveSearchButtonEl.addEventListener("click", toggleLiveSearch);
+      missionModeEl.addEventListener("click", toggleMissionMode);
       unreadOnlyEl.addEventListener("click", () => {
         unreadOnly = !unreadOnly;
         localStorage.setItem(unreadOnlyKey, unreadOnly ? "1" : "0");
@@ -2590,6 +2788,7 @@
         await Promise.all([
           loadStats(),
           loadSchedulerStatus(),
+          loadCoverageOverview(),
           loadArticles(),
         ]);
         scheduleSecondaryRefresh();
@@ -2607,6 +2806,7 @@
       function scheduleSecondaryRefresh() {
         const tasks = [
           loadUrgentRail,
+          loadCoverageOverview,
           loadRuns,
           loadAlertEvents,
           loadClusters,
@@ -2619,8 +2819,9 @@
       async function bootDashboard() {
         liveStatusEl.textContent = "초기 화면 로딩 중";
         await loadSources();
+        if (missionMode) applyMissionDefaults();
         renderRecentSearches();
-        await Promise.all([loadArticles(), loadStats(), loadSchedulerStatus()]);
+        await Promise.all([loadArticles(), loadStats(), loadSchedulerStatus(), loadCoverageOverview()]);
         liveStatusEl.textContent = `초기 화면 준비 완료 · ${new Date().toLocaleTimeString("ko-KR")}`;
         scheduleSecondaryRefresh();
       }

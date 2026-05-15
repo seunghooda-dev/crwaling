@@ -92,6 +92,7 @@ class CrawlService:
                 continue
             run_id = start_crawl_run(conn, source.name)
             count = 0
+            fetched_count = 0
             try:
                 if cancel_key:
                     set_app_state(conn, CRAWL_PROGRESS_INDEX_KEY, str(index))
@@ -101,7 +102,8 @@ class CrawlService:
                 conn.commit()
                 logger.info("crawl start source=%s", source.name)
                 articles = crawler.crawl(source)
-                fetched_results[source.name] = len(articles)
+                fetched_count = len(articles)
+                fetched_results[source.name] = fetched_count
                 for article in articles:
                     if cancel_key and _is_canceled(conn, cancel_key):
                         canceled = True
@@ -117,14 +119,14 @@ class CrawlService:
                                 update_article_snapshot_path(conn, stored["id"], str(snapshot_path))
                             record_alert_if_needed(conn, stored)
                             new_articles.append(dict(stored))
-                finish_crawl_run(conn, run_id, "canceled" if canceled else "success", count)
+                finish_crawl_run(conn, run_id, "canceled" if canceled else "success", count, fetched_count)
                 conn.commit()
                 results[source.name] = count
                 logger.info("crawl %s source=%s new=%s", "canceled" if canceled else "success", source.name, count)
                 if canceled:
                     break
             except Exception as exc:
-                finish_crawl_run(conn, run_id, "failed", count, str(exc))
+                finish_crawl_run(conn, run_id, "failed", count, fetched_count, str(exc))
                 conn.commit()
                 results[source.name] = -1
                 fetched_results[source.name] = 0
