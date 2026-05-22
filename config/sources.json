@@ -25,7 +25,7 @@
     "source_category": "news",
     "url": "https://en.yna.co.kr/RSS/news.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -45,7 +45,7 @@
     "source_category": "news",
     "url": "https://news.kbs.co.kr/news/pc/main/main.html",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 18,
     "max_retries": 2
   },
@@ -55,7 +55,7 @@
     "source_category": "news",
     "url": "https://imnews.imbc.com/m_main.html?gnb=top",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 18,
     "max_retries": 2
   },
@@ -71,9 +71,9 @@
   },
   {
     "name": "JTBC News Monitor",
-    "source_type": "rss",
+    "source_type": "api",
     "source_category": "news",
-    "url": "https://fs.jtbc.joins.com/RSS/newsflash.xml",
+    "url": "https://news-api.jtbc.co.kr/v1/get/contents/section/list/articles?pageNo=1&pageSize=50&articleListType=ARTICLE",
     "enabled": true,
     "crawl_interval_seconds": 300,
     "timeout_seconds": 12,
@@ -85,7 +85,7 @@
     "source_category": "news",
     "url": "https://news.tvchosun.com/",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 18,
     "max_retries": 2
   },
@@ -95,7 +95,7 @@
     "source_category": "news",
     "url": "https://www.ichannela.com/",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 18,
     "max_retries": 2
   },
@@ -105,7 +105,97 @@
     "source_category": "news",
     "url": "https://www.mbn.co.kr/news/",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "KNN News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://news.knn.co.kr/news",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "KBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://news.ikbc.co.kr/",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "TBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.tbc.co.kr/news",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "TJB News Monitor",
+    "source_type": "api",
+    "source_category": "news",
+    "url": "https://hades-cerberus.v.daum.net/charon/media_home_news_all/data?cpId=551724&size=30",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "JTV News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.jtv.co.kr/2021/?c=3/45",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "G1 News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.g1tv.co.kr/news/?mid=1_2",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "UBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.ubc.co.kr/wp/archives/category/news_list",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "CJB News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.cjb.co.kr/home/sub.php?menukey=61",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "JIBS News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.jibs.co.kr/news/articles/viewArticles",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 18,
     "max_retries": 2
   },
@@ -115,7 +205,7 @@
     "source_category": "news",
     "url": "https://www.yonhapnewstv.co.kr/",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 18,
     "max_retries": 2
   },
@@ -125,7 +215,7 @@
     "source_category": "news",
     "url": "https://www.nocutnews.co.kr/news/list",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 18,
     "max_retries": 2
   },
@@ -135,7 +225,7 @@
     "source_category": "news",
     "url": "https://www.chosun.com/arc/outboundfeeds/rss/?outputType=xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -145,7 +235,7 @@
     "source_category": "news",
     "url": "https://rss.donga.com/total.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -155,7 +245,7 @@
     "source_category": "news",
     "url": "https://www.khan.co.kr/rss/rssdata/total_news.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -165,7 +255,7 @@
     "source_category": "news",
     "url": "https://www.hani.co.kr/rss/",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -175,7 +265,7 @@
     "source_category": "news",
     "url": "https://www.hankyung.com/feed/all-news",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -185,7 +275,7 @@
     "source_category": "news",
     "url": "https://www.mk.co.kr/rss/30000001/",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -195,7 +285,7 @@
     "source_category": "news",
     "url": "https://rss.mt.co.kr/mt_news.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -205,7 +295,7 @@
     "source_category": "news",
     "url": "https://www.segye.com/Articles/RSSList/segye_recent.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -215,7 +305,7 @@
     "source_category": "news",
     "url": "https://rss.ohmynews.com/rss/top.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -235,7 +325,7 @@
     "source_category": "news",
     "url": "https://www.newsis.com/RSS/society.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -245,7 +335,7 @@
     "source_category": "news",
     "url": "https://www.newsis.com/RSS/met.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -255,7 +345,7 @@
     "source_category": "news",
     "url": "https://www.newsis.com/RSS/country.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -275,7 +365,7 @@
     "source_category": "news",
     "url": "https://rss.etoday.co.kr/eto/etoday_news_all.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -285,7 +375,7 @@
     "source_category": "news",
     "url": "https://rss.etoday.co.kr/eto/society_news.xml",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -295,7 +385,7 @@
     "source_category": "news",
     "url": "https://www.mk.co.kr/rss/50400012/",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -305,7 +395,7 @@
     "source_category": "news",
     "url": "http://www.pressian.com/api/v3/site/rss/news",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -315,7 +405,7 @@
     "source_category": "news",
     "url": "http://www.pressian.com/api/v3/site/rss/section/68",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -325,7 +415,7 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/pressrelease.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -335,7 +425,7 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/policy.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -345,7 +435,7 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/fact.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -355,7 +445,7 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/ebriefing.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -365,7 +455,7 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/media.xml",
     "enabled": true,
-    "crawl_interval_seconds": 900,
+    "crawl_interval_seconds": 3600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -375,7 +465,7 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/photo.xml",
     "enabled": true,
-    "crawl_interval_seconds": 900,
+    "crawl_interval_seconds": 3600,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -385,7 +475,7 @@
     "source_category": "health",
     "url": "https://www.kdca.go.kr/bbs/kdca/41/rssList.do",
     "enabled": true,
-    "crawl_interval_seconds": 900,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -405,7 +495,7 @@
     "source_category": "fire",
     "url": "https://nfa.go.kr/nfa/news/pressrelease/press/",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 22,
     "max_retries": 2
   },
@@ -415,7 +505,7 @@
     "source_category": "police",
     "url": "https://www.police.go.kr/user/bbs/BD_selectBbsList.do?q_bbsCode=1002",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 22,
     "max_retries": 2
   },
@@ -425,7 +515,7 @@
     "source_category": "disaster",
     "url": "https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardList.do?bbsId=BBSMSTR_000000000008",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 22,
     "max_retries": 2
   },
@@ -435,7 +525,7 @@
     "source_category": "weather",
     "url": "http://www.kma.go.kr/servlet/NeoboardProcess?mode=rss&bid=press&url=http%3A%2F%2Fwww.kma.go.kr%2Fnotify%2Fpress%2Fkma_list.jsp",
     "enabled": true,
-    "crawl_interval_seconds": 300,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
     "max_retries": 2
   },

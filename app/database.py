@@ -92,6 +92,30 @@ CREATE TABLE IF NOT EXISTS app_state (
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS contact_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER NOT NULL,
+    contact_target TEXT NOT NULL,
+    response_note TEXT NOT NULL,
+    next_check_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_logs_article_id ON contact_logs(article_id);
+
+CREATE TABLE IF NOT EXISTS notification_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER,
+    channel TEXT NOT NULL,
+    destination TEXT,
+    status TEXT NOT NULL,
+    message TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_events_article_id ON notification_events(article_id);
+CREATE INDEX IF NOT EXISTS idx_notification_events_created_at ON notification_events(created_at);
 """
 
 
@@ -143,6 +167,53 @@ CREATE TABLE IF NOT EXISTS app_state (
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS contact_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER NOT NULL,
+    contact_target TEXT NOT NULL,
+    response_note TEXT NOT NULL,
+    next_check_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_contact_logs_article_id ON contact_logs(article_id);
+CREATE TABLE IF NOT EXISTS notification_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    article_id INTEGER,
+    channel TEXT NOT NULL,
+    destination TEXT,
+    status TEXT NOT NULL,
+    message TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_notification_events_article_id ON notification_events(article_id);
+CREATE INDEX IF NOT EXISTS idx_notification_events_created_at ON notification_events(created_at);
+"""
+
+FTS_SQL = """
+CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
+    title,
+    summary,
+    body_text,
+    keywords,
+    content='articles',
+    content_rowid='id',
+    tokenize='unicode61'
+);
+CREATE TRIGGER IF NOT EXISTS articles_fts_ai AFTER INSERT ON articles BEGIN
+    INSERT INTO articles_fts(rowid, title, summary, body_text, keywords)
+    VALUES (new.id, new.title, new.summary, new.body_text, new.keywords);
+END;
+CREATE TRIGGER IF NOT EXISTS articles_fts_ad AFTER DELETE ON articles BEGIN
+    INSERT INTO articles_fts(articles_fts, rowid, title, summary, body_text, keywords)
+    VALUES('delete', old.id, old.title, old.summary, old.body_text, old.keywords);
+END;
+CREATE TRIGGER IF NOT EXISTS articles_fts_au AFTER UPDATE OF title, summary, body_text, keywords ON articles BEGIN
+    INSERT INTO articles_fts(articles_fts, rowid, title, summary, body_text, keywords)
+    VALUES('delete', old.id, old.title, old.summary, old.body_text, old.keywords);
+    INSERT INTO articles_fts(rowid, title, summary, body_text, keywords)
+    VALUES (new.id, new.title, new.summary, new.body_text, new.keywords);
+END;
+INSERT INTO articles_fts(articles_fts) VALUES('rebuild');
 """
 
 
@@ -198,6 +269,11 @@ def init_db() -> None:
             """
         )
         conn.executescript(POST_MIGRATION_SQL)
+        try:
+            conn.executescript(FTS_SQL)
+        except sqlite3.OperationalError:
+            # Some embedded SQLite builds omit FTS5. The app keeps the LIKE fallback in that case.
+            pass
         conn.commit()
 
 

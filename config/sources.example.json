@@ -15,7 +15,7 @@
     "source_category": "government",
     "url": "https://www.korea.kr/rss/pressrelease.xml",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
     "max_retries": 2
   },
@@ -25,7 +25,7 @@
     "source_category": "fire",
     "url": "https://nfa.go.kr/nfa/news/pressrelease/press/",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 22,
     "max_retries": 2
   },
@@ -35,7 +35,7 @@
     "source_category": "police",
     "url": "https://www.police.go.kr/user/bbs/BD_selectBbsList.do?q_bbsCode=1002",
     "enabled": true,
-    "crawl_interval_seconds": 600,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 22,
     "max_retries": 2
   },
@@ -65,8 +65,98 @@
     "source_category": "health",
     "url": "https://www.kdca.go.kr/bbs/kdca/41/rssList.do",
     "enabled": true,
-    "crawl_interval_seconds": 900,
+    "crawl_interval_seconds": 1800,
     "timeout_seconds": 12,
+    "max_retries": 2
+  },
+  {
+    "name": "KNN News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://news.knn.co.kr/news",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "KBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://news.ikbc.co.kr/",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "TBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.tbc.co.kr/news",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "TJB News Monitor",
+    "source_type": "api",
+    "source_category": "news",
+    "url": "https://hades-cerberus.v.daum.net/charon/media_home_news_all/data?cpId=551724&size=30",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "JTV News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.jtv.co.kr/2021/?c=3/45",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "G1 News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.g1tv.co.kr/news/?mid=1_2",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "UBC News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.ubc.co.kr/wp/archives/category/news_list",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "CJB News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.cjb.co.kr/home/sub.php?menukey=61",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
+    "max_retries": 2
+  },
+  {
+    "name": "JIBS News Monitor",
+    "source_type": "html",
+    "source_category": "news",
+    "url": "https://www.jibs.co.kr/news/articles/viewArticles",
+    "enabled": true,
+    "crawl_interval_seconds": 600,
+    "timeout_seconds": 18,
     "max_retries": 2
   }
 ]

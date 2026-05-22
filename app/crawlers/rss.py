@@ -7,7 +7,7 @@ from app.content import clean_html_text, extract_media_urls
 from app.crawlers.base import Crawler
 from app.crawlers.http import crawler_headers, fetch_with_retry
 from app.models import Article, Source
-from app.text import article_fingerprint, canonicalize_url, normalize_space
+from app.text import article_fingerprint, canonicalize_url, normalize_article_url, normalize_space
 from app.title_extractor import split_title_summary
 
 
@@ -21,7 +21,7 @@ class RssCrawler(Crawler):
         articles: list[Article] = []
         for entry in feed.entries:
             raw_title = normalize_space(getattr(entry, "title", ""))
-            link = getattr(entry, "link", "")
+            link = normalize_article_url(getattr(entry, "link", ""))
             if not raw_title or not link:
                 continue
 

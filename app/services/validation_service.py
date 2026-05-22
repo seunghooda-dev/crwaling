@@ -92,6 +92,8 @@ def validate_notifications(path: Path = Path("config/notifications.json")) -> li
         errors.append(f"{path}: telegram_chat_id is required when telegram_bot_token is set")
     if payload.get("telegram_chat_id") and not payload.get("telegram_bot_token"):
         errors.append(f"{path}: telegram_bot_token is required when telegram_chat_id is set")
+    if "telegram_disable_web_page_preview" in payload and not isinstance(payload.get("telegram_disable_web_page_preview"), bool):
+        errors.append(f"{path}: telegram_disable_web_page_preview must be a boolean")
     if payload.get("smtp_host") and not payload.get("email_to"):
         errors.append(f"{path}: email_to is required when smtp_host is set")
     return errors

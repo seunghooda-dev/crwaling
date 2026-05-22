@@ -16,6 +16,7 @@ BODY_MARKERS = (
 DATE_SUFFIX_PATTERN = re.compile(r"\s+\d{4}\.\d{2}\.\d{2}\s+\(\d{2}:\d{2}\)\s*$")
 END_SENTENCE_PATTERN = re.compile(r"(?<=[.!?。！？])\s+")
 KOREAN_SENTENCE_PATTERN = re.compile(r"(?<=[가-힣0-9][다요죠음임까다])\.\s*")
+KOREAN_TIGHT_SENTENCE_PATTERN = re.compile(r"(?:습니다|했습니다|됩니다|입니다|다)\.(?=[A-Z가-힣\"“‘])")
 
 
 def clean_title_text(value: str | None) -> str:
@@ -51,6 +52,9 @@ def _first_marker_index(text: str) -> int | None:
 
 
 def _sentence_boundary(text: str) -> int | None:
+    tight_match = KOREAN_TIGHT_SENTENCE_PATTERN.search(text)
+    if tight_match and tight_match.end() >= 20:
+        return tight_match.end()
     if len(text) < 90:
         return None
     for pattern in (END_SENTENCE_PATTERN, KOREAN_SENTENCE_PATTERN):

@@ -44,13 +44,24 @@ def rescore() -> None:
     print(f"Rescored {count} articles.")
 
 
-def detail_crawl(limit: int) -> None:
-    from app.services.detail_service import enrich_missing_details
+def repair_data(limit: int) -> None:
+    from app.repository import auto_triage_articles, repair_article_data
 
     init_db()
     with connect() as conn:
-        count = enrich_missing_details(conn, limit=limit)
-    print(f"Enriched {count} articles.")
+        repair = repair_article_data(conn, limit=limit)
+        triage = auto_triage_articles(conn, limit=limit)
+    print(f"Repair: {repair}")
+    print(f"Triage: {triage}")
+
+
+def detail_crawl(limit: int) -> None:
+    from app.services.detail_service import enrich_missing_detail_report
+
+    init_db()
+    with connect() as conn:
+        report = enrich_missing_detail_report(conn, limit=limit)
+    print(f"Detail enrich: {report}")
 
 
 def rebuild_clusters(limit: int | None) -> None:
@@ -125,6 +136,7 @@ def main() -> None:
             "rescore",
             "auto-crawl",
             "detail-crawl",
+            "repair-data",
             "rebuild-clusters",
             "backup",
             "maintenance",
@@ -153,6 +165,8 @@ def main() -> None:
         auto_crawl(args.interval)
     elif args.command == "detail-crawl":
         detail_crawl(args.limit)
+    elif args.command == "repair-data":
+        repair_data(args.limit)
     elif args.command == "rebuild-clusters":
         rebuild_clusters(args.limit)
     elif args.command == "backup":

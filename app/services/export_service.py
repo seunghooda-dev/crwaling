@@ -5,6 +5,7 @@ import io
 EXPORT_FIELDS = [
     "id",
     "title",
+    "author",
     "source_name",
     "source_category",
     "published_at",
@@ -32,6 +33,7 @@ def articles_to_cuesheet(articles: list[dict]) -> str:
         lines.extend(
             [
                 f"{index}. {article.get('title')}",
+                f"   Reporter: {article.get('author') or '-'}",
                 f"   Source: {article.get('source_name')}",
                 f"   Category: {article.get('source_category') or '-'}",
                 f"   Score: {article.get('importance_score')} / Status: {article.get('newsroom_status')}",

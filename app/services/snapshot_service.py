@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 
 from app.config import settings
+from app.author import clean_author_display
 from app.models import Article
 
 
@@ -23,6 +24,7 @@ def save_article_snapshot(stored_article: dict, article: Article) -> Path | None
         "title": article.title,
         "url": article.url,
         "canonical_url": article.canonical_url,
+        "author": clean_author_display(article.author),
         "published_at": article.published_at.isoformat() if article.published_at else None,
         "summary": article.summary,
         "body_text": article.body_text,

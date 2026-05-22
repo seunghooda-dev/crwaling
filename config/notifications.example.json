@@ -2,6 +2,7 @@
   "webhook_url": "",
   "telegram_bot_token": "",
   "telegram_chat_id": "",
+  "telegram_disable_web_page_preview": false,
   "kakao_webhook_url": "",
   "email_to": "",
   "email_from": "",

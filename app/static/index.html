@@ -49,21 +49,21 @@
       header {
         display: grid;
         grid-template-columns: auto 1fr;
-        gap: 14px;
+        gap: 8px 12px;
         align-items: center;
-        padding: 14px 20px;
+        padding: 8px 14px;
         border-bottom: 1px solid var(--line);
         background: rgba(255, 254, 250, 0.94);
         backdrop-filter: blur(12px);
-        position: sticky;
-        top: 0;
+        position: relative;
         z-index: 20;
       }
 
       h1 {
         margin: 0;
-        font-size: 20px;
+        font-size: 19px;
         letter-spacing: 0;
+        white-space: nowrap;
       }
 
       h1::after {
@@ -80,8 +80,8 @@
 
       .toolbar {
         display: grid;
-        grid-template-columns: minmax(150px, 190px) minmax(120px, 145px) minmax(220px, 280px) minmax(105px, 125px) minmax(95px, 115px) minmax(90px, 105px) minmax(110px, 130px);
-        gap: 8px;
+        grid-template-columns: minmax(110px, 130px) minmax(240px, 1fr) minmax(92px, 110px) minmax(86px, 100px) minmax(76px, 92px) minmax(92px, 108px) minmax(104px, 120px);
+        gap: 6px;
         align-items: center;
         justify-content: stretch;
       }
@@ -97,17 +97,46 @@
         min-width: 220px;
       }
 
-      .quickbar {
+      .toolbar select[multiple] {
+        height: 34px;
+        min-height: 34px;
+        padding: 3px 6px;
+        line-height: 1.18;
+        overflow: auto;
+      }
+
+      .toolbar select:not([multiple]),
+      .toolbar input,
+      .toolbar button {
+        height: 34px;
+      }
+
+      .quickbar,
+      .presetbar,
+      .sourcebar,
+      .filterbar {
         grid-column: 1 / -1;
         display: flex;
-        gap: 7px;
-        flex-wrap: wrap;
+        gap: 5px;
+        flex-wrap: nowrap;
         align-items: center;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+        min-width: 0;
+      }
+
+      .quickbar:empty,
+      .presetbar:empty,
+      .sourcebar:empty,
+      .filterbar:empty {
+        display: none;
       }
 
       .quickbar button {
-        height: 30px;
-        padding: 0 10px;
+        flex: 0 0 auto;
+        height: 27px;
+        padding: 0 9px;
         border-radius: 999px;
         background: rgba(255, 254, 250, 0.84);
         color: #334455;
@@ -124,18 +153,13 @@
         margin-left: auto;
         color: var(--muted);
         font-size: 12px;
-      }
-
-      .presetbar {
-        grid-column: 1 / -1;
-        display: flex;
-        gap: 7px;
-        flex-wrap: wrap;
-        align-items: center;
+        flex: 0 0 auto;
+        white-space: nowrap;
       }
 
       .presetbar button {
-        height: 28px;
+        flex: 0 0 auto;
+        height: 27px;
         padding: 0 9px;
         border-color: rgba(8, 61, 119, 0.18);
         background: var(--soft);
@@ -145,30 +169,31 @@
 
       .presetbar select,
       .presetbar input {
+        flex: 0 0 auto;
         width: auto;
-        height: 28px;
+        height: 27px;
         font-size: 12px;
       }
 
       .presetbar input[type="date"] {
-        min-width: 132px;
-      }
-
-      .sourcebar {
-        grid-column: 1 / -1;
-        display: flex;
-        gap: 7px;
-        flex-wrap: wrap;
-        align-items: center;
+        min-width: 124px;
       }
 
       .sourcebar button {
-        height: 28px;
+        flex: 0 0 auto;
+        height: 27px;
         padding: 0 9px;
         border-color: rgba(51, 103, 59, 0.18);
         background: var(--green-soft);
         color: var(--green);
         font-size: 12px;
+      }
+
+      .sourcebar {
+        flex-wrap: wrap;
+        align-content: flex-start;
+        max-height: 59px;
+        overflow: hidden;
       }
 
       .sourcebar button.active {
@@ -179,16 +204,44 @@
 
       .utilitybar {
         grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: auto auto auto auto 1fr;
+        display: flex;
         gap: 8px;
+        align-items: center;
+        justify-content: flex-start;
+        min-width: 0;
+        padding: 5px 6px;
+        border: 1px solid rgba(8, 61, 119, 0.1);
+        border-radius: 8px;
+        background: rgba(255, 254, 250, 0.72);
+      }
+
+      .utility-actions {
+        display: flex;
+        gap: 6px;
+        flex: 0 0 auto;
+        flex-wrap: wrap;
         align-items: center;
       }
 
       .utilitybar button {
+        flex: 0 0 auto;
         height: 28px;
+        min-width: 66px;
         padding: 0 9px;
         font-size: 12px;
+        white-space: nowrap;
+      }
+
+      #allArticles {
+        border-color: var(--navy);
+        background: var(--navy);
+        color: #fffefa;
+      }
+
+      #resetFilters,
+      #scrollTop {
+        background: #fffefa;
+        color: var(--muted);
       }
 
       .utilitybar button.active {
@@ -208,20 +261,22 @@
         background: var(--signal);
       }
 
-      .recent-searches {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        justify-content: flex-end;
-        min-width: 0;
+      .view-chip {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+        min-height: 24px;
+        padding: 2px 7px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fffefa;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
       }
 
-      .recent-searches button {
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        border-color: rgba(8, 61, 119, 0.16);
+      .view-chip.active {
+        border-color: var(--accent);
         background: var(--soft);
         color: var(--accent-ink);
       }
@@ -294,9 +349,9 @@
 
       main {
         display: grid;
-        grid-template-columns: 300px minmax(440px, 1fr) 360px;
-        gap: 14px;
-        padding: 14px;
+        grid-template-columns: 280px minmax(480px, 1fr) 320px;
+        gap: 10px;
+        padding: 10px;
       }
 
       .panel,
@@ -311,23 +366,56 @@
         overflow: hidden;
       }
 
-      .panel h2 {
+      .panel h2,
+      details.panel > summary {
         margin: 0;
-        padding: 13px;
+        padding: 10px 12px;
         border-bottom: 1px solid var(--line);
         font-size: 15px;
+        font-weight: 800;
         background: linear-gradient(90deg, #f7f7f1, #edf2f7);
+      }
+
+      details.panel > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      details.panel > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.panel > summary::after {
+        content: "펼치기";
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      details.panel[open] > summary::after {
+        content: "접기";
       }
 
       .stack {
         display: grid;
-        gap: 10px;
+        gap: 8px;
       }
 
       .side-body {
         display: grid;
-        gap: 8px;
-        padding: 12px;
+        gap: 7px;
+        padding: 10px;
+      }
+
+      .ops-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .ops-status {
+        grid-column: 1 / -1;
       }
 
       .side-body > input,
@@ -346,10 +434,14 @@
         justify-content: space-between;
         gap: 10px;
         padding: 10px;
+        width: 100%;
+        border: 0;
         background: #eef4ef;
         border-radius: 6px;
+        font-family: inherit;
         font-size: 14px;
         color: #244a2b;
+        text-align: left;
       }
 
       .stat.warning {
@@ -360,6 +452,88 @@
       .stat.danger {
         background: var(--red-soft);
         color: var(--wine);
+      }
+
+      .stat[data-stat-filter],
+      .stat[data-stat-category] {
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+
+      .stat[data-stat-filter]:hover,
+      .stat[data-stat-filter]:focus-visible,
+      .stat[data-stat-filter].active,
+      .stat[data-stat-category]:hover,
+      .stat[data-stat-category]:focus-visible,
+      .stat[data-stat-category].active {
+        border-color: currentColor;
+        box-shadow: 0 0 0 2px rgba(8, 61, 119, 0.08);
+        outline: none;
+      }
+
+      .source-warning-card {
+        display: grid;
+        gap: 6px;
+        padding: 9px;
+        border: 1px solid var(--line);
+        border-left: 3px solid #d78b2f;
+        border-radius: 7px;
+        background: #fffefa;
+      }
+
+      .source-warning-card.danger {
+        border-left-color: var(--wine);
+        background: linear-gradient(90deg, rgba(109, 26, 54, 0.08), #fffefa 42%);
+      }
+
+      .source-warning-card.diagnostic {
+        border-left-color: var(--accent);
+        background: linear-gradient(90deg, rgba(8, 61, 119, 0.07), #fffefa 44%);
+      }
+
+      .source-warning-head {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        justify-content: space-between;
+        min-width: 0;
+      }
+
+      .source-warning-head strong {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .source-warning-label {
+        flex: 0 0 auto;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--wine);
+      }
+
+      .source-warning-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .warning-chip {
+        padding: 3px 6px;
+        border-radius: 999px;
+        background: #eef4ef;
+        color: #2e5b36;
+        font-size: 11px;
+        line-height: 1.2;
+      }
+
+      .warning-chip.danger {
+        background: var(--red-soft);
+        color: var(--wine);
+      }
+
+      .warning-chip.warning {
+        background: var(--amber-soft);
+        color: #8f331c;
       }
 
       .crawl-progress {
@@ -396,6 +570,10 @@
 
       .failed {
         color: var(--warn);
+      }
+
+      .run.stalled {
+        color: var(--wine);
       }
 
       .list {
@@ -449,10 +627,10 @@
 
       article {
         display: grid;
-        gap: 6px;
+        gap: 5px;
         align-content: start;
         align-self: start;
-        padding: 12px 14px;
+        padding: 10px 12px;
         border-left: 4px solid transparent;
         height: fit-content;
         min-width: 0;
@@ -477,7 +655,7 @@
 
       article h3 {
         margin: 0;
-        font-size: 17px;
+        font-size: 16px;
         line-height: 1.28;
         letter-spacing: 0;
         overflow-wrap: anywhere;
@@ -507,7 +685,7 @@
         align-self: start;
         display: -webkit-box;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 5;
+        -webkit-line-clamp: 3;
         overflow: hidden;
         text-overflow: ellipsis;
       }
@@ -525,7 +703,7 @@
       .workflow {
         display: flex;
         flex-wrap: wrap;
-        gap: 7px;
+        gap: 6px;
         align-items: center;
         min-width: 0;
       }
@@ -537,11 +715,17 @@
       }
 
       .tag {
-        padding: 4px 7px;
+        padding: 3px 7px;
         border-radius: 999px;
         background: var(--stone);
         color: #314052;
         font-size: 12px;
+      }
+
+      .tag.warning {
+        background: var(--amber-soft);
+        color: #8f331c;
+        font-weight: 700;
       }
 
       .score {
@@ -549,9 +733,87 @@
         font-weight: 700;
       }
 
+      .author-meta {
+        color: #1f5f4a;
+        font-weight: 800;
+      }
+
+      .reliability-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #f8faf4;
+        color: #34404e;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .reliability-strip.high,
+      .reliability-badge.high,
+      .reliability-tag.high {
+        border-color: rgba(51, 103, 59, 0.26);
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .reliability-strip.medium,
+      .reliability-badge.medium,
+      .reliability-tag.medium {
+        border-color: rgba(8, 61, 119, 0.2);
+        background: var(--soft);
+        color: var(--accent-ink);
+      }
+
+      .reliability-strip.warning,
+      .reliability-badge.warning,
+      .reliability-tag.warning {
+        border-color: rgba(228, 87, 46, 0.32);
+        background: var(--amber-soft);
+        color: #8f331c;
+      }
+
+      .reliability-strip.danger,
+      .reliability-badge.danger,
+      .reliability-tag.danger {
+        border-color: rgba(109, 26, 54, 0.28);
+        background: var(--red-soft);
+        color: var(--wine);
+      }
+
+      .reliability-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 2px 7px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        font-weight: 800;
+      }
+
+      .reliability-detail {
+        color: inherit;
+        opacity: 0.9;
+      }
+
+      .reliability-missing {
+        font-weight: 800;
+      }
+
       .workflow select,
       .workflow input {
-        width: 150px;
+        width: 140px;
+        height: 32px;
+        font-size: 12px;
+      }
+
+      .workflow button {
+        height: 32px;
+        padding: 0 10px;
+        font-size: 12px;
       }
 
       .source-distance {
@@ -559,7 +821,7 @@
         flex-wrap: wrap;
         gap: 6px;
         color: var(--muted);
-        font-size: 12px;
+        font-size: 11px;
       }
 
       .assist {
@@ -697,6 +959,12 @@
         border-color: rgba(228, 87, 46, 0.32);
         background: var(--amber-soft);
         color: #8f331c;
+      }
+
+      .coverage-card.success {
+        border-color: rgba(51, 103, 59, 0.28);
+        background: var(--green-soft);
+        color: var(--green);
       }
 
       .coverage-risk {
@@ -951,7 +1219,8 @@
 
       body[data-density="compact"] .article-body,
       body[data-density="compact"] .workflow,
-      body[data-density="compact"] .actions {
+      body[data-density="compact"] .actions,
+      body[data-density="compact"] .reliability-detail {
         display: none;
       }
 
@@ -1037,9 +1306,221 @@
         font-size: 12px;
       }
 
+      .reporter-card {
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fffefa;
+        font-size: 13px;
+        line-height: 1.42;
+      }
+
+      .reporter-card strong {
+        overflow-wrap: anywhere;
+      }
+
+      .reporter-title {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+      }
+
+      .reporter-brief {
+        display: -webkit-box;
+        overflow: hidden;
+        color: #3f4b58;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+      }
+
+      .reporter-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .reporter-chip {
+        padding: 3px 6px;
+        border-radius: 999px;
+        background: #eef4ef;
+        color: #2e5b36;
+        font-size: 11px;
+        line-height: 1.2;
+      }
+
+      .reporter-chip.warning {
+        background: var(--amber-soft);
+        color: #8f331c;
+      }
+
+      .reporter-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .reporter-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--accent-ink);
+        font-weight: 800;
+      }
+
+      .reporter-pill.hot {
+        background: var(--red-soft);
+        color: var(--urgent);
+      }
+
+      .reporter-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .reporter-rule {
+        display: grid;
+        gap: 3px;
+        height: auto;
+        min-height: 44px;
+        padding: 8px;
+        text-align: left;
+        border-radius: 6px;
+        background: var(--panel-2);
+        font-size: 12px;
+      }
+
+      .detail-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .detail-actions button {
+        min-height: 32px;
+        height: auto;
+        padding: 7px 8px;
+        font-size: 12px;
+      }
+
+      .detail-source-list {
+        display: grid;
+        gap: 5px;
+      }
+
+      .detail-source-item {
+        display: grid;
+        gap: 3px;
+        padding: 7px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel-2);
+        font-size: 12px;
+      }
+
+      .verification-score {
+        display: grid;
+        gap: 5px;
+        padding: 9px;
+        border-radius: 7px;
+        background: var(--soft);
+        color: var(--accent-ink);
+        font-size: 13px;
+      }
+
+      .score-track {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(8, 61, 119, 0.14);
+      }
+
+      .score-bar {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--success);
+      }
+
+      .conflict-box {
+        display: grid;
+        gap: 6px;
+        padding: 10px;
+        border-radius: 7px;
+        background: var(--amber-soft);
+        color: #7c311c;
+        font-size: 13px;
+      }
+
+      .command-score {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        align-items: center;
+        padding: 10px;
+        border-radius: 7px;
+        background: var(--accent);
+        color: #fffefa;
+      }
+
+      .command-score strong {
+        font-size: 28px;
+      }
+
+      .command-item {
+        display: grid;
+        gap: 4px;
+        padding: 9px;
+        border-radius: 7px;
+        background: var(--panel-2);
+        font-size: 13px;
+      }
+
+      .command-item.danger {
+        background: var(--red-soft);
+        color: var(--urgent);
+      }
+
+      .command-item.warning {
+        background: var(--amber-soft);
+        color: #7c311c;
+      }
+
+      .contact-form {
+        display: grid;
+        gap: 7px;
+      }
+
       @media (max-width: 980px) {
+        header {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
         main {
           grid-template-columns: 1fr;
+        }
+
+        .list {
+          order: 1;
+        }
+
+        .stack {
+          order: 2;
+        }
+
+        .detail-panel {
+          order: 3;
         }
 
         .board {
@@ -1047,21 +1528,49 @@
         }
 
         .toolbar {
-          grid-template-columns: 1fr;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .toolbar .search-input {
+          grid-column: auto;
+          min-width: 0;
+        }
+
+        .sourcebar {
+          flex-wrap: nowrap;
+          max-height: none;
+          overflow-x: auto;
+          overflow-y: hidden;
         }
 
         .utilitybar {
-          grid-template-columns: 1fr;
+          align-items: center;
+          flex-direction: row;
         }
 
-        .recent-searches {
-          justify-content: flex-start;
+        .utility-actions {
+          flex: 0 0 auto;
+          width: auto;
+        }
+
+        .utility-actions button {
+          flex: 0 0 auto;
         }
 
         input,
         select,
         button {
-          flex: 1 1 150px;
+          min-width: 0;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .toolbar {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .toolbar .search-input {
+          grid-column: 1 / -1;
         }
       }
     </style>
@@ -1070,7 +1579,7 @@
     <header>
       <h1>Newsroom Monitor</h1>
       <div class="toolbar">
-        <select id="source"></select>
+        <select id="source" multiple hidden aria-hidden="true"></select>
         <select id="status">
           <option value="">전체 상태</option>
           <option value="new">신규</option>
@@ -1097,6 +1606,7 @@
           <option value="admin">관리</option>
         </select>
         <button class="primary" id="search">조회</button>
+        <button id="collectNow">새로 수집</button>
         <button id="liveSearch">실시간 조회</button>
       </div>
       <div class="quickbar" id="quickbar">
@@ -1143,26 +1653,22 @@
       </div>
       <div class="sourcebar" id="sourcebar"></div>
       <div class="utilitybar">
-        <button id="missionMode" class="mission-toggle">속보모드</button>
-        <button id="unreadOnly">미확인만</button>
-        <button id="resetFilters">초기화</button>
-        <button id="scrollTop">맨 위</button>
-        <div class="recent-searches" id="recentSearches"></div>
+        <div class="utility-actions">
+          <button id="allArticles">전체기사</button>
+          <button id="missionMode" class="mission-toggle">속보모드</button>
+          <button id="unreadOnly">미확인만</button>
+          <button id="riskOnly">보강필요</button>
+          <button id="resetFilters">초기화</button>
+          <button id="scrollTop">맨 위</button>
+        </div>
       </div>
+      <div class="filterbar" id="filterChips"></div>
     </header>
     <main>
       <aside class="stack">
         <section class="panel">
           <h2>긴급 상단</h2>
           <div class="side-body urgent-rail" id="urgentRail"></div>
-        </section>
-        <section class="panel">
-          <h2>취재 감시망</h2>
-          <div class="side-body" id="coverageSnapshot"></div>
-        </section>
-        <section class="panel">
-          <h2>지역 현황</h2>
-          <div class="side-body" id="regionStats"></div>
         </section>
         <section class="panel">
           <h2>수집 상태</h2>
@@ -1178,32 +1684,59 @@
         </section>
         <section class="panel">
           <h2>운영</h2>
-          <div class="side-body">
+          <div class="side-body ops-actions">
             <button id="exportCsv">CSV 내보내기</button>
             <button id="exportCue">큐시트 내보내기</button>
             <button id="backupDb">DB 백업</button>
             <button id="rebuildClusters">이슈 재계산</button>
-            <button id="pruneAlerts">오래된 알림 정리</button>
+            <button id="pruneAlerts">알림 정리</button>
+            <button id="repairData">데이터 정리</button>
             <button id="validateConfig">설정 검사</button>
+            <button id="telegramTest">텔레그램 테스트</button>
+            <div class="summary ops-status" id="notificationStatus">텔레그램 설정 확인 중</div>
           </div>
         </section>
         <section class="panel">
-          <h2>백업 상태</h2>
+          <h2>기자 데스크</h2>
+          <div class="side-body" id="reporterDesk"></div>
+        </section>
+        <section class="panel">
+          <h2>상세 보강 큐</h2>
+          <div class="side-body" id="detailQueue"></div>
+        </section>
+        <section class="panel">
+          <h2>크롤링 지휘센터</h2>
+          <div class="side-body" id="commandCenter"></div>
+        </section>
+        <section class="panel">
+          <h2>오보 위험</h2>
+          <div class="side-body" id="falseRisk"></div>
+        </section>
+        <details class="panel">
+          <summary>취재 감시망</summary>
+          <div class="side-body" id="coverageSnapshot"></div>
+        </details>
+        <details class="panel">
+          <summary>지역 현황</summary>
+          <div class="side-body" id="regionStats"></div>
+        </details>
+        <details class="panel">
+          <summary>백업 상태</summary>
           <div class="side-body" id="opsStatus"></div>
-        </section>
-        <section class="panel">
-          <h2>이슈 묶음</h2>
+        </details>
+        <details class="panel">
+          <summary>이슈 묶음</summary>
           <div class="side-body" id="clusters"></div>
-        </section>
-        <section class="panel">
-          <h2>알림 로그</h2>
+        </details>
+        <details class="panel">
+          <summary>알림 로그</summary>
           <div class="side-body">
             <button id="ackAllAlerts">알림 전체 확인</button>
             <div id="alertEvents"></div>
           </div>
-        </section>
-        <section class="panel">
-          <h2>최근 실행</h2>
+        </details>
+        <details class="panel">
+          <summary>최근 실행</summary>
           <div class="side-body run-filter">
             <input id="runSearch" placeholder="수집 로그 검색" />
             <select id="runStatus">
@@ -1211,14 +1744,15 @@
               <option value="success">성공</option>
               <option value="failed">실패</option>
               <option value="running">실행중</option>
+              <option value="stalled">멈춤 의심</option>
             </select>
             <div id="runs"></div>
           </div>
-        </section>
-        <section class="panel">
-          <h2>출처 품질</h2>
+        </details>
+        <details class="panel">
+          <summary>출처 품질</summary>
           <div class="side-body" id="sourceQuality"></div>
-        </section>
+        </details>
       </aside>
       <section class="list" id="articles"></section>
       <aside class="panel detail-panel">
@@ -1235,47 +1769,66 @@
       const clustersEl = document.querySelector("#clusters");
       const alertEventsEl = document.querySelector("#alertEvents");
       const detailPanelEl = document.querySelector("#detailPanel");
+      const filterChipsEl = document.querySelector("#filterChips");
       const sourceEl = document.querySelector("#source");
       const searchButtonEl = document.querySelector("#search");
+      const collectButtonEl = document.querySelector("#collectNow");
       const liveSearchButtonEl = document.querySelector("#liveSearch");
       const urgentRailEl = document.querySelector("#urgentRail");
+      const reporterDeskEl = document.querySelector("#reporterDesk");
+      const detailQueueEl = document.querySelector("#detailQueue");
+      const commandCenterEl = document.querySelector("#commandCenter");
+      const falseRiskEl = document.querySelector("#falseRisk");
       const coverageSnapshotEl = document.querySelector("#coverageSnapshot");
       const regionStatsEl = document.querySelector("#regionStats");
       const sourceWarningsEl = document.querySelector("#sourceWarnings");
       const opsStatusEl = document.querySelector("#opsStatus");
       const sourceQualityEl = document.querySelector("#sourceQuality");
       const schedulerStatusEl = document.querySelector("#schedulerStatus");
+      const notificationStatusEl = document.querySelector("#notificationStatus");
       const liveStatusEl = document.querySelector("#liveStatus");
       const categoryButtons = Array.from(document.querySelectorAll("#quickbar button"));
       const readKey = "newsroom-read-article-ids";
       const densityKey = "newsroom-card-density";
-      const urgentThresholdKey = "newsroom-urgent-threshold";
-      const recentSearchKey = "newsroom-recent-searches";
+      const urgentThresholdKey = "newsroom-urgent-threshold-v2";
       const unreadOnlyKey = "newsroom-unread-only";
+      const riskOnlyKey = "newsroom-risk-only";
       const missionModeKey = "newsroom-mission-mode";
       const pageSize = 50;
+      const defaultFetchTimeoutMs = 45000;
+      const crawlFetchTimeoutMs = 900000;
       let activeCategory = "";
       let currentPage = 1;
       let articleLoadToken = 0;
-      let urgentThreshold = Number(localStorage.getItem(urgentThresholdKey) || 4.5);
+      let detailLoadToken = 0;
+      let urgentThreshold = Number(localStorage.getItem(urgentThresholdKey) || 5);
       let unreadOnly = localStorage.getItem(unreadOnlyKey) === "1";
+      let riskOnly = localStorage.getItem(riskOnlyKey) === "1";
+      let reviewOnly = false;
+      let missingAuthorOnly = false;
+      let alertOnly = false;
+      let bodyOnly = false;
+      let detailOnly = false;
       let missionMode = localStorage.getItem(missionModeKey) === "1";
       let toastTimer = undefined;
       let lastArticleCount = undefined;
       let lastUrgentIds = new Set();
       let selectedArticleId = undefined;
       let liveRefreshRunning = false;
+      let dashboardRefreshRunning = false;
+      let detailQueuePriorityOnly = true;
       let liveSearchTimer = undefined;
       let missionStartedLive = false;
       let crawlProgressTimer = undefined;
       const unreadOnlyEl = document.querySelector("#unreadOnly");
+      const riskOnlyEl = document.querySelector("#riskOnly");
       const missionModeEl = document.querySelector("#missionMode");
-      const recentSearchesEl = document.querySelector("#recentSearches");
       const regionEl = document.querySelector("#region");
 
       document.body.dataset.density = localStorage.getItem(densityKey) || "normal";
       document.querySelector("#density").value = document.body.dataset.density;
       unreadOnlyEl.classList.toggle("active", unreadOnly);
+      riskOnlyEl.classList.toggle("active", riskOnly);
       renderMissionMode();
 
       function showToast(message) {
@@ -1305,26 +1858,31 @@
         document.querySelector("#sort").value = "latest";
         document.querySelector("#status").value = "";
         regionEl.value = "";
-        sourceEl.value = "";
+        setSelectedSources([]);
         activeCategory = "";
         document.querySelectorAll("#quickbar button").forEach((button) => {
           button.classList.toggle("active", button.dataset.category === "");
-        });
-        document.querySelectorAll("#sourcebar button").forEach((button) => {
-          button.classList.toggle("active", button.dataset.sourceName === "");
         });
         document.querySelector("#dateFrom").hidden = true;
         document.querySelector("#dateTo").hidden = true;
         document.querySelector("#dateFrom").value = "";
         document.querySelector("#dateTo").value = "";
         regionEl.value = "";
-        urgentThreshold = 3.5;
+        urgentThreshold = 4.5;
         localStorage.setItem(urgentThresholdKey, String(urgentThreshold));
         if (!unreadOnly) {
           unreadOnly = true;
           localStorage.setItem(unreadOnlyKey, "1");
           unreadOnlyEl.classList.add("active");
         }
+        riskOnly = false;
+        localStorage.setItem(riskOnlyKey, "0");
+        riskOnlyEl.classList.remove("active");
+        reviewOnly = false;
+        missingAuthorOnly = false;
+        alertOnly = false;
+        bodyOnly = false;
+        detailOnly = false;
       }
 
       function toggleMissionMode() {
@@ -1352,12 +1910,40 @@
       }
 
       async function fetchJson(url, options = {}) {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text || `HTTP ${response.status}`);
+        const { timeoutMs = defaultFetchTimeoutMs, ...fetchOptions } = options;
+        let timeoutId = undefined;
+        if (timeoutMs && !fetchOptions.signal) {
+          const controller = new AbortController();
+          fetchOptions.signal = controller.signal;
+          timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         }
-        return response.json();
+        let response;
+        try {
+          response = await fetch(url, fetchOptions);
+        } catch (error) {
+          if (error.name === "AbortError") {
+            throw new Error("요청 시간이 초과됐습니다. 수집 대상이 많으면 출처를 줄이거나 다시 시도하세요.");
+          }
+          throw new Error(`네트워크 요청 실패: ${error.message || error}`);
+        } finally {
+          if (timeoutId) clearTimeout(timeoutId);
+        }
+
+        const contentType = response.headers.get("content-type") || "";
+        const payload = contentType.includes("application/json") ? await response.json().catch(() => null) : await response.text();
+        if (!response.ok) {
+          throw new Error(formatFetchError(payload, response.status));
+        }
+        return payload ?? {};
+      }
+
+      function formatFetchError(payload, status) {
+        const detail = payload && typeof payload === "object" && "detail" in payload ? payload.detail : payload;
+        if (Array.isArray(detail)) {
+          return detail.map((item) => item.msg || item.message || JSON.stringify(item)).join("\n") || `HTTP ${status}`;
+        }
+        if (detail && typeof detail === "object") return detail.message || JSON.stringify(detail);
+        return String(detail || `HTTP ${status}`);
       }
 
       function setArticleLoading(active) {
@@ -1367,7 +1953,12 @@
 
       function decodeHtmlEntities(value) {
         const textarea = document.createElement("textarea");
-        textarea.innerHTML = String(value ?? "");
+        const normalized = String(value ?? "")
+          .replace(/(^|[^&])hellip;/g, "$1...")
+          .replace(/(^|[^&])quot;/g, '$1"')
+          .replace(/(^|[^&])apos;/g, "$1'")
+          .replace(/(^|[^&])nbsp;/g, "$1 ");
+        textarea.innerHTML = normalized;
         return textarea.value;
       }
 
@@ -1379,11 +1970,12 @@
           return null;
         }
         liveRefreshRunning = true;
-        const originalLabel = searchButtonEl.textContent;
-        searchButtonEl.textContent = "중지";
+        const originalLabel = collectButtonEl.textContent;
+        collectButtonEl.textContent = "중지";
+        collectButtonEl.classList.add("danger");
         const startedAt = performance.now();
         const payload = {};
-        if (sourceEl.value) payload.source_name = sourceEl.value;
+        addSourcePayload(payload);
         if (activeCategory) payload.source_category = activeCategory;
         if (document.querySelector("#q").value.trim()) payload.q = document.querySelector("#q").value.trim();
         liveStatusEl.textContent = "각 출처 접속 중 · 새 기사 확인 중";
@@ -1393,6 +1985,7 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
+            timeoutMs: crawlFetchTimeoutMs,
           });
           const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
           const failedText = result.failed_source_count ? ` · 실패 ${result.failed_source_count}곳` : "";
@@ -1407,7 +2000,8 @@
           return result;
         } finally {
           liveRefreshRunning = false;
-          searchButtonEl.textContent = originalLabel;
+          collectButtonEl.textContent = originalLabel;
+          collectButtonEl.classList.remove("danger");
           stopCrawlProgressPolling();
           Promise.all([loadSchedulerStatus(), loadCoverageOverview(), loadSourceQuality()]).catch((error) => showToast(error.message));
         }
@@ -1420,6 +2014,64 @@
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#039;");
+      }
+
+      function selectedSourceNames() {
+        return Array.from(sourceEl.selectedOptions)
+          .map((option) => option.value)
+          .filter(Boolean);
+      }
+
+      function selectedSourceLabel() {
+        const names = selectedSourceNames();
+        if (!names.length) return "";
+        if (names.length <= 2) return names.join(", ");
+        return `${names.slice(0, 2).join(", ")} 외 ${names.length - 2}`;
+      }
+
+      function setSelectedSources(names = []) {
+        const selected = new Set((names || []).filter(Boolean));
+        Array.from(sourceEl.options).forEach((option) => {
+          option.selected = selected.has(option.value);
+        });
+        syncSourceButtons();
+      }
+
+      function syncSourceButtons() {
+        const selected = new Set(selectedSourceNames());
+        document.querySelectorAll("#sourcebar button").forEach((button) => {
+          const sourceName = button.dataset.sourceName || "";
+          button.classList.toggle("active", sourceName ? selected.has(sourceName) : selected.size === 0);
+        });
+      }
+
+      function appendSourceParams(params) {
+        selectedSourceNames().forEach((source) => params.append("source_names", source));
+      }
+
+      function addSourcePayload(payload) {
+        const sources = selectedSourceNames();
+        if (sources.length) payload.source_names = sources;
+      }
+
+      function hasArticleFilters() {
+        return Boolean(
+          selectedSourceNames().length ||
+            document.querySelector("#status").value ||
+            activeCategory ||
+            riskOnly ||
+            reviewOnly ||
+            missingAuthorOnly ||
+            alertOnly ||
+            bodyOnly ||
+            detailOnly ||
+            document.querySelector("#period").value ||
+            document.querySelector("#dateFrom").value ||
+            document.querySelector("#dateTo").value ||
+            regionEl.value ||
+            document.querySelector("#mode").value !== "latest" ||
+            document.querySelector("#sort").value !== "latest",
+        );
       }
 
       function escapeRegExp(value) {
@@ -1441,6 +2093,7 @@
 
       function parseJsonList(value) {
         if (!value) return [];
+        if (Array.isArray(value)) return value;
         try {
           return JSON.parse(value);
         } catch {
@@ -1476,30 +2129,6 @@
           article.classList.add("read");
           article.querySelector(".status-pill.new")?.remove();
         }
-      }
-
-      function readRecentSearches() {
-        try {
-          return JSON.parse(localStorage.getItem(recentSearchKey) || "[]");
-        } catch {
-          return [];
-        }
-      }
-
-      function rememberSearch(query) {
-        const value = String(query || "").trim();
-        if (!value) return;
-        const searches = readRecentSearches().filter((item) => item !== value);
-        searches.unshift(value);
-        localStorage.setItem(recentSearchKey, JSON.stringify(searches.slice(0, 8)));
-        renderRecentSearches();
-      }
-
-      function renderRecentSearches() {
-        const searches = readRecentSearches();
-        recentSearchesEl.innerHTML = searches.length
-          ? searches.map((query) => `<button data-recent-query="${escapeHtml(query)}">${escapeHtml(query)}</button>`).join("")
-          : "";
       }
 
       async function copyText(value) {
@@ -1542,9 +2171,29 @@
         showToast("기사 요약을 복사했습니다.");
       }
 
+      async function sendArticleTelegram(id) {
+        const result = await fetchJson(`/articles/${id}/telegram`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+          timeoutMs: 30000,
+        });
+        showToast(`텔레그램으로 전송했습니다${result.destination ? ` · ${result.destination}` : ""}.`);
+        loadNotificationStatus().catch(() => {});
+      }
+
+      async function sendTelegramTest() {
+        const result = await fetchJson("/notifications/telegram/test", {
+          method: "POST",
+          timeoutMs: 30000,
+        });
+        showToast(`텔레그램 테스트 전송 완료${result.destination ? ` · ${result.destination}` : ""}.`);
+        await loadNotificationStatus();
+      }
+
       function resetFilters() {
         document.querySelector("#q").value = "";
-        sourceEl.value = "";
+        setSelectedSources([]);
         document.querySelector("#status").value = "";
         document.querySelector("#period").value = "";
         document.querySelector("#mode").value = "latest";
@@ -1567,9 +2216,84 @@
         unreadOnly = false;
         localStorage.setItem(unreadOnlyKey, "0");
         unreadOnlyEl.classList.remove("active");
+        riskOnly = false;
+        localStorage.setItem(riskOnlyKey, "0");
+        riskOnlyEl.classList.remove("active");
+        reviewOnly = false;
+        missingAuthorOnly = false;
+        alertOnly = false;
+        bodyOnly = false;
+        detailOnly = false;
         document.querySelectorAll("#quickbar button").forEach((button) => button.classList.toggle("active", button.dataset.category === ""));
-        document.querySelectorAll("#sourcebar button").forEach((button) => button.classList.toggle("active", button.dataset.sourceName === ""));
         currentPage = 1;
+      }
+
+      function viewStateLabel() {
+        const q = document.querySelector("#q").value.trim();
+        const mode = document.querySelector("#mode").value;
+        const status = document.querySelector("#status").value;
+        const statLabel = activeStatLabel(status);
+        if (mode === "admin") return "관리 화면";
+        if (mode === "board") return "보드 보기";
+        if (mode === "priority") return "중요 기사";
+        if (mode === "alerts") return "알림 후보";
+        if (statLabel) return statLabel;
+        if (q) return `검색: ${q}`;
+        return "전체기사";
+      }
+
+      function renderFilterChips() {
+        const currentView = viewStateLabel();
+        const chips = [`<span class="view-chip active">현재 보기: ${escapeHtml(currentView)}</span>`];
+        const addChip = (label) => {
+          if (label && label !== currentView) chips.push(`<span class="view-chip">${escapeHtml(label)}</span>`);
+        };
+        const q = document.querySelector("#q").value.trim();
+        const source = selectedSourceLabel();
+        const status = document.querySelector("#status").value;
+        const period = document.querySelector("#period").value;
+        const mode = document.querySelector("#mode").value;
+        const region = regionEl.value;
+        if (q) chips.push(`<span class="view-chip">검색어: ${escapeHtml(q)}</span>`);
+        if (source) chips.push(`<span class="view-chip">출처: ${escapeHtml(source)}</span>`);
+        if (status) {
+          const statusLabel = workflowStatusLabel(status);
+          if (statusLabel !== currentView) chips.push(`<span class="view-chip">상태: ${escapeHtml(statusLabel)}</span>`);
+        }
+        if (activeCategory) chips.push(`<span class="view-chip">분야: ${escapeHtml(categoryLabel(activeCategory))}</span>`);
+        if (region) chips.push(`<span class="view-chip">지역: ${escapeHtml(selectedRegionLabel())}</span>`);
+        if (period) chips.push(`<span class="view-chip">기간: ${escapeHtml(document.querySelector("#period").selectedOptions[0]?.textContent || period)}</span>`);
+        if (mode !== "latest") chips.push(`<span class="view-chip">모드: ${escapeHtml(document.querySelector("#mode").selectedOptions[0]?.textContent || mode)}</span>`);
+        if (unreadOnly) addChip("미확인만");
+        if (riskOnly) addChip("보강필요");
+        if (reviewOnly) addChip("확인필요");
+        if (missingAuthorOnly) addChip("기자명 없음");
+        if (alertOnly) addChip("새 알림");
+        if (bodyOnly) addChip("상세 수집");
+        if (detailOnly) addChip("우선 보강");
+        if (missionMode) addChip("속보모드");
+        filterChipsEl.innerHTML = chips.join("");
+      }
+
+      function activeStatLabel(status) {
+        if (riskOnly) return "보강필요";
+        if (reviewOnly) return "확인필요";
+        if (missingAuthorOnly) return "기자명 없음";
+        if (alertOnly) return "새 알림";
+        if (bodyOnly) return "상세 수집";
+        if (detailOnly) return "우선 보강";
+        if (status) return workflowStatusLabel(status);
+        return "";
+      }
+
+      function activeStatBasisText() {
+        if (riskOnly) return " · 전체 DB 기준";
+        if (reviewOnly) return " · 검증 상태 기준";
+        if (missingAuthorOnly) return " · 기자명 누락 기준";
+        if (alertOnly) return " · 미확인 알림 기준";
+        if (bodyOnly) return " · 본문 수집 기준";
+        if (detailOnly) return " · 우선 보강 큐 기준";
+        return "";
       }
 
       function formatBytes(value) {
@@ -1577,6 +2301,15 @@
         if (size > 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
         if (size > 1024) return `${(size / 1024).toFixed(1)} KB`;
         return `${size} B`;
+      }
+
+      function formatDurationShort(seconds) {
+        const value = Number(seconds);
+        if (!Number.isFinite(value) || value < 0) return "기록 없음";
+        if (value < 60) return `${Math.max(1, Math.round(value))}초 전`;
+        if (value < 3600) return `${Math.round(value / 60)}분 전`;
+        if (value < 86400) return `${Math.round(value / 3600)}시간 전`;
+        return `${Math.round(value / 86400)}일 전`;
       }
 
       function formatDateTimeParam(date, endOfDay = false) {
@@ -1632,6 +2365,25 @@
         if (region) params.set("region_group", region);
       }
 
+      function addCurrentArticleFilters(params) {
+        const q = document.querySelector("#q").value.trim();
+        const status = document.querySelector("#status").value;
+        const sort = document.querySelector("#sort").value;
+        if (q) params.set("q", q);
+        appendSourceParams(params);
+        if (status) params.set("newsroom_status", status);
+        if (activeCategory) params.set("source_category", activeCategory);
+        if (riskOnly) params.set("needs_work", "true");
+        if (reviewOnly) params.set("needs_review", "true");
+        if (missingAuthorOnly) params.set("missing_author", "true");
+        if (alertOnly) params.set("has_alert", "true");
+        if (bodyOnly) params.set("has_body", "true");
+        if (detailOnly) params.set("needs_detail", "true");
+        if (sort) params.set("sort", sort);
+        addDateFilters(params);
+        addRegionFilter(params);
+      }
+
       function selectedRegionLabel() {
         return regionEl.selectedOptions[0]?.textContent || "전체 지역";
       }
@@ -1656,6 +2408,59 @@
         }
       }
 
+      function articleReliabilityView(item) {
+        const server = item.reliability && typeof item.reliability === "object" ? item.reliability : null;
+        if (server) {
+          return {
+            score: Number(server.score || 0),
+            level: server.level || "warning",
+            label: server.label || "추가 확인",
+            reasons: Array.isArray(server.reasons) ? server.reasons : [],
+            missing: Array.isArray(server.missing) ? server.missing : [],
+          };
+        }
+        const quality = Number(item.quality_score || 0);
+        const body = String(item.body_text || item.summary || "");
+        const sourceCount = Number(item.cluster_source_count || 0);
+        const score = Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(38 + quality * 0.24 + (body.length >= 120 ? 6 : -14) + (item.author ? 7 : -8) + (sourceCount >= 2 ? 10 : -5)),
+          ),
+        );
+        const level = score >= 80 ? "high" : score >= 65 ? "medium" : score >= 45 ? "warning" : "danger";
+        const missing = [];
+        if (body.length < 120) missing.push("본문");
+        if (!item.author && item.source_category === "news" && item.source_type !== "api") missing.push("기자명");
+        if (sourceCount < 2 && Number(item.importance_score || 0) >= 4.5) missing.push("복수 출처");
+        return {
+          score,
+          level,
+          label: level === "high" ? "방송 안정" : level === "medium" ? "확인 가능" : level === "warning" ? "추가 확인" : "사용 주의",
+          reasons: [],
+          missing,
+        };
+      }
+
+      function articleNeedsWork(item) {
+        const reliability = articleReliabilityView(item);
+        return ["warning", "danger"].includes(reliability.level) || reliability.missing.length > 0;
+      }
+
+      function reliabilityStripTemplate(item) {
+        const reliability = articleReliabilityView(item);
+        const reasons = reliability.reasons.slice(0, 3).join(" · ");
+        const missing = reliability.missing.slice(0, 3).join(" · ");
+        return `
+          <div class="reliability-strip ${escapeHtml(reliability.level)}" title="기사 안정성은 품질, 본문/기자명, 복수 출처, 검증 상태를 합산한 내부 판단입니다.">
+            <span class="reliability-badge ${escapeHtml(reliability.level)}">안정 ${Number(reliability.score || 0)} · ${escapeHtml(reliability.label)}</span>
+            ${reasons ? `<span class="reliability-detail">근거 ${escapeHtml(reasons)}</span>` : ""}
+            ${missing ? `<span class="reliability-detail reliability-missing">보강 ${escapeHtml(missing)}</span>` : ""}
+          </div>
+        `;
+      }
+
       function articleTemplate(item) {
         const score = Number(item.importance_score || 0);
         const priority = score >= 5 ? "high" : score >= 3 ? "medium" : "normal";
@@ -1669,27 +2474,34 @@
           .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
           .join("");
         const qualityFlags = parseJsonList(item.quality_flags).slice(0, 3).join(", ");
+        const truthFlags = truthSignalTags(item)
+          .map((tag) => `<span class="tag warning">${escapeHtml(tag)}</span>`)
+          .join("");
         const assist = item.ai_summary
           ? `<div class="assist">${escapeHtml(item.ai_summary)}\n\n${escapeHtml(item.check_points || "")}</div>`
           : "";
         const sourceDistance = sourceDistanceText(item);
         const display = articleDisplayParts(item);
         const timeLabel = item.published_at ? "발행" : "수집";
+        const reliability = articleReliabilityView(item);
         return `
-          <article data-id="${item.id}" data-priority="${priority}" class="${read ? "read" : ""} ${String(item.id) === String(selectedArticleId) ? "selected" : ""}">
+          <article data-id="${item.id}" data-priority="${priority}" data-reliability="${escapeHtml(reliability.level)}" class="${read ? "read" : ""} ${String(item.id) === String(selectedArticleId) ? "selected" : ""}">
             <h3><span class="article-label">[제목]</span> <a href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">${highlightSearch(display.title)}</a></h3>
             ${display.body ? `<div class="article-body"><span class="article-label">[기사내용]</span> ${highlightSearch(display.body)}</div>` : ""}
             <div class="meta">
               ${read ? "" : '<span class="status-pill new">NEW</span>'}
               <span>${escapeHtml(item.source_name)}</span>
+              ${item.author ? `<span class="author-meta">${escapeHtml(item.author)}</span>` : ""}
               <span class="status-pill category-pill ${escapeHtml(item.source_category || "")}">${escapeHtml(categoryLabel(item.source_category))}</span>
               <span>${timeLabel} ${escapeHtml(formatArticleTime(item.published_at || item.collected_at))}</span>
               <span class="score">score ${score.toFixed(1)}</span>
               <span class="status-pill">품질 ${Number(item.quality_score || 0).toFixed(0)}</span>
-              <span class="status-pill ${item.verification_status === "needs_review" ? "review" : ""}">${escapeHtml(item.verification_status)}</span>
-              <span class="status-pill ${item.newsroom_status === "ready" ? "ready" : ""}">${escapeHtml(item.assignee || "담당자 없음")}</span>
+              <span class="status-pill ${item.verification_status === "needs_review" ? "review" : ""}">${escapeHtml(verificationLabel(item.verification_status))}</span>
+              <span class="status-pill ${item.newsroom_status === "ready" ? "ready" : ""}">${escapeHtml(workflowStatusLabel(item.newsroom_status))}</span>
+              <span class="status-pill">${escapeHtml(item.assignee || "담당자 없음")}</span>
             </div>
-            <div class="tags">${tags}${regions}${qualityFlags ? `<span class="tag">${escapeHtml(qualityFlags)}</span>` : ""}</div>
+            ${reliabilityStripTemplate(item)}
+            <div class="tags">${tags}${regions}${truthFlags}${qualityFlags ? `<span class="tag">${escapeHtml(qualityFlags)}</span>` : ""}</div>
             <div class="source-distance">${escapeHtml(sourceDistance)}</div>
             <div class="workflow">
               <select data-field="newsroom_status">
@@ -1709,6 +2521,7 @@
               <input data-field="assignee" placeholder="담당자" value="${escapeHtml(item.assignee || "")}" />
               <button data-action="save">저장</button>
               <button data-action="copy">복사</button>
+              <button data-action="telegram">텔레그램</button>
               <button data-action="assist">AI 보조</button>
               <button data-action="enrich">상세 수집</button>
               <button data-action="detail">상세</button>
@@ -1720,6 +2533,38 @@
 
       function statusOption(value, label, selected) {
         return `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`;
+      }
+
+      function workflowStatusLabel(value) {
+        return {
+          new: "신규",
+          watching: "확인중",
+          ready: "방송 후보",
+          done: "확인완료",
+          hold: "사용주의",
+        }[value] || value || "상태 없음";
+      }
+
+      function verificationLabel(value) {
+        return {
+          unchecked: "미확인",
+          needs_review: "확인 필요",
+          checking: "확인중",
+          verified: "확인완료",
+          caution: "사용주의",
+        }[value] || value || "미확인";
+      }
+
+      function truthSignalTags(item) {
+        const text = `${item.title || ""} ${item.summary || ""} ${item.body_text || ""}`;
+        const flags = [];
+        if (/(오발송|오발령|훈련상황|훈련 상황|실제상황이 아니|실제 상황이 아니|훈련 메시지)/.test(text)) {
+          flags.push("진위주의");
+        }
+        if (/(상황 종료|수색 종료|진화완료|진화 완료|통제 해제|주의보 해제|경보 해제)/.test(text)) {
+          flags.push("상황종료");
+        }
+        return flags;
       }
 
       function categoryLabel(value) {
@@ -1744,6 +2589,15 @@
           TV조선: ["tv chosun"],
           채널A: ["channel a"],
           MBN: ["mbn"],
+          KNN: ["knn"],
+          KBC: ["kbc", "ikbc"],
+          TBC: ["tbc"],
+          TJB: ["tjb"],
+          JTV: ["jtv"],
+          G1: ["g1"],
+          UBC: ["ubc"],
+          CJB: ["cjb"],
+          JIBS: ["jibs"],
           연합뉴스TV: ["yonhap news tv"],
           조선: ["chosun"],
           동아: ["donga"],
@@ -1792,9 +2646,26 @@
       function splitLongTitle(title) {
         const text = String(title || "").trim();
         if (text.length < 120) return { title: text, body: "" };
-        const markerIndexes = [" [앵커]", " [기자]", " ◇ ", " ◆ ", " 특파원 ", " 기자 "]
+        const markerIndexes = [
+          " [앵커]",
+          " [기자]",
+          " ◇ ",
+          " ◆ ",
+          " 특파원 ",
+          " 기자 ",
+          " 기자의 보도",
+          " 이재명 대통령",
+          " 그런데 ",
+          " 전북과 ",
+          " [ SYNC ]",
+          "CNN 방송",
+          "선박 소유사",
+          "회사 측",
+          "또 ",
+          "앞서 ",
+        ]
           .map((marker) => text.indexOf(marker))
-          .filter((index) => index > 12);
+          .filter((index) => index > 12 && index <= 180);
         const markerIndex = markerIndexes.sort((a, b) => a - b)[0];
         if (markerIndex) {
           return { title: text.slice(0, markerIndex).trim(), body: text.slice(markerIndex).trim() };
@@ -1821,15 +2692,16 @@
       async function loadArticles(options = {}) {
         const requestToken = ++articleLoadToken;
         setArticleLoading(true);
-        const q = document.querySelector("#q").value.trim();
-        const mode = document.querySelector("#mode").value;
-        const source = sourceEl.value;
-        const status = document.querySelector("#status").value;
-        const sort = document.querySelector("#sort").value;
-        const region = regionEl.value;
         try {
+          if (options.allArticles) resetFilters();
           if (options.page) currentPage = options.page;
           if (options.resetPage) currentPage = 1;
+          const q = document.querySelector("#q").value.trim();
+          const mode = document.querySelector("#mode").value;
+          const source = selectedSourceLabel();
+          const status = document.querySelector("#status").value;
+          const sort = document.querySelector("#sort").value;
+          const region = regionEl.value;
           const offset = (currentPage - 1) * pageSize;
           const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) });
           if (mode === "admin") {
@@ -1845,13 +2717,20 @@
             if (requestToken !== articleLoadToken) return;
           }
           if (q) params.set("q", q);
-          if (source) params.set("source_name", source);
+          appendSourceParams(params);
           if (status) params.set("newsroom_status", status);
           if (activeCategory) params.set("source_category", activeCategory);
+          if (riskOnly && mode === "latest") params.set("needs_work", "true");
+          if (reviewOnly && mode === "latest") params.set("needs_review", "true");
+          if (missingAuthorOnly && mode === "latest") params.set("missing_author", "true");
+          if (alertOnly && mode === "latest") params.set("has_alert", "true");
+          if (bodyOnly && mode === "latest") params.set("has_body", "true");
+          if (detailOnly && mode === "latest") params.set("needs_detail", "true");
           if (sort) params.set("sort", sort);
           addDateFilters(params);
           addRegionFilter(params);
           const modeParams = new URLSearchParams({ limit: "50" });
+          appendSourceParams(modeParams);
           if (activeCategory) modeParams.set("source_category", activeCategory);
           addRegionFilter(modeParams);
           const url =
@@ -1879,7 +2758,8 @@
             currentPage = totalPages;
             return loadArticles({ page: currentPage });
           }
-          const visibleItems = unreadOnly ? items.filter((item) => !readIds().has(String(item.id))) : items;
+          let visibleItems = unreadOnly ? items.filter((item) => !readIds().has(String(item.id))) : items;
+          if (riskOnly && mode !== "latest") visibleItems = visibleItems.filter(articleNeedsWork);
           articlesEl.innerHTML = visibleItems.length
             ? visibleItems.map(articleTemplate).join("")
             : '<div class="empty">표시할 기사가 없습니다.</div>';
@@ -1887,17 +2767,21 @@
             articlesEl.insertAdjacentHTML("beforeend", paginationTemplate(currentPage, totalPages));
           }
           const unread = items.filter((item) => !readIds().has(String(item.id))).length;
+          const needsWork = riskOnly && mode === "latest" ? totalCount : items.filter(articleNeedsWork).length;
           if (lastArticleCount !== undefined && items.length > lastArticleCount) {
             showToast(`새 기사 ${items.length - lastArticleCount}건이 목록에 표시됐습니다.`);
           }
           lastArticleCount = items.length;
-          const resultLabel = q || source || status || activeCategory || region ? "검색 결과" : "목록";
+          const statLabel = activeStatLabel(status);
+          const resultLabel = statLabel || (q || source || status || activeCategory || region ? "검색 결과" : "목록");
           const start = items.length ? offset + 1 : 0;
           const end = offset + items.length;
           const resultCount = countInfo ? `${start}-${end}/${countInfo.count}건` : `${items.length}건`;
           const unreadText = unreadOnly ? `미확인 표시 ${visibleItems.length}/${items.length}건` : `미확인 ${unread}건`;
+          const workText = activeStatBasisText() || ` · 현재 페이지 보강필요 ${needsWork}건`;
           const regionText = region ? ` · ${selectedRegionLabel()}` : "";
-          liveStatusEl.textContent = `${resultLabel} ${resultCount}${regionText} · ${unreadText} · ${new Date().toLocaleTimeString("ko-KR")}`;
+          liveStatusEl.textContent = `${resultLabel} ${resultCount}${regionText} · ${unreadText}${workText} · ${new Date().toLocaleTimeString("ko-KR")}`;
+          renderFilterChips();
         } finally {
           if (requestToken === articleLoadToken) setArticleLoading(false);
         }
@@ -2062,24 +2946,38 @@
 
       async function enrichArticle(article) {
         const id = article.dataset.id;
-        await fetchJson(`/articles/${id}/enrich`, { method: "POST" });
+        await fetchJson(`/articles/${id}/enrich`, { method: "POST", timeoutMs: 90000 });
         await loadArticles();
         await showDetail(id);
       }
 
       async function showDetail(id) {
-        const item = await fetchJson(`/articles/${id}`);
+        const detailToken = ++detailLoadToken;
         selectedArticleId = id;
-        markRead(id);
         document.querySelectorAll("article.selected").forEach((article) => article.classList.remove("selected"));
         articlesEl.querySelector(`article[data-id="${CSS.escape(String(id))}"]`)?.classList.add("selected");
+        detailPanelEl.setAttribute("aria-busy", "true");
+        detailPanelEl.innerHTML = '<div class="empty">상세 정보 불러오는 중...</div>';
+        try {
+        const [item, advice, contactLogs] = await Promise.all([
+          fetchJson(`/articles/${id}`),
+          fetchJson(`/reporter/articles/${id}/advice`),
+          fetchJson(`/articles/${id}/contact-logs`),
+        ]);
+        if (detailToken !== detailLoadToken) return;
+        markRead(id);
         const images = parseJsonList(item.image_urls).slice(0, 4);
         const videos = parseJsonList(item.video_urls).slice(0, 4);
         const regions = parseJsonList(item.region_tags);
         const qualityFlags = parseJsonList(item.quality_flags);
         const keywords = parseJsonList(item.keywords);
+        const truthFlags = [...truthSignalTags(item), ...(advice.truth_flags || [])];
         const articleText = item.body_text || item.summary || "카드 요약만 제공된 기사입니다. 원문 확인이 필요합니다.";
         const sourceDistance = sourceDistanceText(item);
+        const reliability = articleReliabilityView(item);
+        const reliabilityReasons = reliability.reasons.length ? reliability.reasons.join(" · ") : "명확한 안정 근거가 아직 부족합니다.";
+        const reliabilityMissing = reliability.missing.length ? reliability.missing.join(" · ") : "우선 보강 항목 없음";
+        const verificationPercent = Math.round((Number(advice.verification_score || 0) / Number(advice.verification_total || 1)) * 100);
         const checklist = {
           source_checked: false,
           cross_checked: false,
@@ -2095,17 +2993,43 @@
             <div class="tags">
               ${regions.map((region) => `<span class="tag">${escapeHtml(region)}</span>`).join("")}
               <span class="tag">품질 ${Number(item.quality_score || 0).toFixed(0)}</span>
+              <span class="tag">검증 ${Number(advice.verification_score || 0)}/${Number(advice.verification_total || 0)}</span>
+              <span class="tag">위험 ${escapeHtml(advice.verification_risk || "-")}</span>
+              <span class="tag reliability-tag ${escapeHtml(reliability.level)}">안정 ${Number(reliability.score || 0)} · ${escapeHtml(reliability.label)}</span>
+              ${[...new Set(truthFlags)].map((flag) => `<span class="tag warning">${escapeHtml(flag)}</span>`).join("")}
               ${qualityFlags.map((flag) => `<span class="tag">${escapeHtml(flag)}</span>`).join("")}
             </div>
             <div class="verification-actions">
               <a class="primary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">원문 열기</a>
               <button data-action="panel-assist" data-id="${item.id}">AI 검토</button>
               <button data-action="panel-copy" data-id="${item.id}">요약 복사</button>
+              <button data-action="panel-telegram" data-id="${item.id}">텔레그램 전송</button>
             </div>
             <div class="verification-brief">
               <strong>검증 요약</strong>
               <span>${escapeHtml(sourceDistance)}</span>
               <span>${escapeHtml(articleText)}</span>
+            </div>
+            <div class="verification-score">
+              <strong>${escapeHtml(advice.decision)} · 검증 ${Number(advice.verification_score || 0)}/${Number(advice.verification_total || 0)}</strong>
+              <div class="score-track"><div class="score-bar" style="width: ${verificationPercent}%"></div></div>
+              <span>${escapeHtml(advice.cuesheet?.verification_gap || "")}</span>
+              <span>${escapeHtml(advice.cuesheet?.contact_hint || "")}</span>
+            </div>
+            <div class="verification-score reliability-strip ${escapeHtml(reliability.level)}">
+              <strong>기사 안정성 ${Number(reliability.score || 0)} · ${escapeHtml(reliability.label)}</strong>
+              <span>근거: ${escapeHtml(reliabilityReasons)}</span>
+              <span>보강: ${escapeHtml(reliabilityMissing)}</span>
+            </div>
+            <div class="verification-score">
+              <strong>중요도 점수 설명</strong>
+              ${
+                (advice.score_details || []).length
+                  ? advice.score_details
+                      .map((part) => `<span>${escapeHtml(part.label)} ${Number(part.value || 0) >= 0 ? "+" : ""}${Number(part.value || 0).toFixed(1)}</span>`)
+                      .join("")
+                  : "<span>가중치 근거가 없습니다.</span>"
+              }
             </div>
             <div class="tags">${keywords.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>
             <div class="checklist" data-checklist-id="${item.id}">
@@ -2116,6 +3040,28 @@
               ${checklistItem("broadcast_ready", "방송 가능", checklist)}
             </div>
             <button data-action="save-checklist" data-id="${item.id}">체크리스트 저장</button>
+            <div class="verification-brief">
+              <strong>취재 메모/콜로그</strong>
+              <div class="contact-form" data-contact-form="${item.id}">
+                <input data-contact-target placeholder="전화/확인 대상" />
+                <textarea data-contact-note placeholder="답변 내용"></textarea>
+                <input data-contact-next type="datetime-local" />
+                <button data-action="save-contact-log" data-id="${item.id}">콜로그 저장</button>
+              </div>
+              <div class="evidence-list">
+                ${
+                  contactLogs.length
+                    ? contactLogs
+                        .map(
+                          (log) => `
+                            <span><strong>${escapeHtml(log.contact_target)}</strong> · ${escapeHtml(log.response_note)}${log.next_check_at ? ` · 다음 확인 ${escapeHtml(log.next_check_at)}` : ""}</span>
+                          `,
+                        )
+                        .join("")
+                    : "<span>저장된 콜로그가 없습니다.</span>"
+                }
+              </div>
+            </div>
             <div class="evidence-list">
               <strong>증거 자료</strong>
               <span>이미지 ${images.length}개 · 영상 ${videos.length}개</span>
@@ -2126,6 +3072,9 @@
             <div class="summary"><strong>AI 보조</strong><br />${escapeHtml(item.ai_summary || "AI 보조 버튼으로 생성할 수 있습니다.")}</div>
           </div>
         `;
+        } finally {
+          if (detailToken === detailLoadToken) detailPanelEl.removeAttribute("aria-busy");
+        }
       }
 
       function checklistItem(key, label, checklist) {
@@ -2133,11 +3082,17 @@
       }
 
       async function loadUrgentRail() {
-        const params = new URLSearchParams({ limit: "8", threshold: String(urgentThreshold) });
+        const params = new URLSearchParams({
+          limit: "8",
+          threshold: String(urgentThreshold),
+          strict_urgent: "true",
+          collected_within_hours: "24",
+        });
+        appendSourceParams(params);
         if (activeCategory) params.set("source_category", activeCategory);
         addRegionFilter(params);
         const items = await fetchJson(`/alerts?${params.toString()}`);
-        const visibleItems = items.slice(0, 5);
+        const visibleItems = items.slice(0, 3);
         const currentIds = new Set(items.map((item) => String(item.id)));
         const hasNewUrgent = [...currentIds].some((id) => !lastUrgentIds.has(id));
         urgentRailEl.innerHTML = `
@@ -2167,11 +3122,12 @@
               <span class="urgent-metric"><strong>${sourceCount}</strong>출처</span>
             </div>
             <div class="urgent-controls">
-              ${urgentThresholdButton(3.5, "속보")}
-              ${urgentThresholdButton(4.5, "기본")}
-              ${urgentThresholdButton(5.5, "높음")}
-              ${urgentThresholdButton(6.5, "최상")}
+              ${urgentThresholdButton(4.5, "긴급")}
+              ${urgentThresholdButton(5, "기본")}
+              ${urgentThresholdButton(6, "엄격")}
+              ${urgentThresholdButton(7, "최상")}
             </div>
+            <span class="summary">최근 24시간 · 안전/재난 기준</span>
             ${needsReview ? `<span class="summary">확인 필요 ${needsReview}건</span>` : ""}
           </div>
         `;
@@ -2205,6 +3161,7 @@
               <button data-urgent-action="detail" data-id="${item.id}">상세</button>
               <a class="primary-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer" data-urgent-action="open">원문</a>
               <button data-urgent-action="copy" data-id="${item.id}">복사</button>
+              <button data-urgent-action="telegram" data-id="${item.id}">텔레그램</button>
               <button data-urgent-action="ready" data-id="${item.id}">방송후보</button>
             </div>
           </div>
@@ -2229,6 +3186,260 @@
         return reasons;
       }
 
+      function compactText(value, max = 90) {
+        const text = decodeHtmlEntities(value || "").replace(/\s+/g, " ").trim();
+        if (text.length <= max) return text;
+        const cut = text.lastIndexOf(" ", max);
+        return `${text.slice(0, cut > 30 ? cut : max).trim()}...`;
+      }
+
+      function reporterDeskTitle(item) {
+        const display = articleDisplayParts(item);
+        return compactText(display.title || item.cuesheet?.headline || item.title, 82);
+      }
+
+      function reporterDeskBrief(item) {
+        const display = articleDisplayParts(item);
+        const brief = display.body || item.cuesheet?.verification_gap || item.cuesheet?.contact_hint || "";
+        return compactText(brief, 120);
+      }
+
+      function reporterDeskChips(item) {
+        const chips = [];
+        if (item.verification_risk) chips.push(`검증 ${item.verification_risk}`);
+        if (item.cuesheet?.region) chips.push(item.cuesheet.region);
+        for (const reason of item.reasons || []) {
+          if (chips.length >= 5) break;
+          chips.push(reason);
+        }
+        return chips;
+      }
+
+      async function loadReporterDesk() {
+        const desk = await fetchJson("/reporter/dashboard?limit=6");
+        const top = desk.top || [];
+        const rules = desk.alert_rules || [];
+        const budget = desk.today_budget || [];
+        const health = desk.source_health || [];
+        const readyQueue = desk.ready_queue || [];
+        const risks = desk.risk_dashboard || [];
+        reporterDeskEl.innerHTML = `
+          <div class="reporter-grid">
+            <div class="stat"><span>취재 후보</span><strong>${top.length}</strong></div>
+            <div class="stat"><span>예산 항목</span><strong>${budget.length}</strong></div>
+          </div>
+          ${
+            top.length
+              ? top
+                  .slice(0, 4)
+                  .map(
+                    (item) => {
+                      const chips = reporterDeskChips(item)
+                        .map((chip, index) => `<span class="reporter-chip ${index === 0 ? "warning" : ""}">${escapeHtml(chip)}</span>`)
+                        .join("");
+                      return `
+                        <div class="reporter-card" data-id="${item.id}">
+                          <div class="reporter-meta">
+                            <span class="reporter-pill ${item.decision === "즉시 취재" ? "hot" : ""}">${escapeHtml(item.decision)}</span>
+                            <span>score ${Number(item.reporter_score || 0).toFixed(1)}</span>
+                            <span>${escapeHtml(categoryLabel(item.source_category))}</span>
+                          </div>
+                          <strong class="reporter-title">${escapeHtml(reporterDeskTitle(item))}</strong>
+                          <div class="reporter-chip-row">${chips}</div>
+                          <div class="reporter-brief">${escapeHtml(reporterDeskBrief(item))}</div>
+                          <div class="summary">${escapeHtml(item.cuesheet?.contact_hint || "")}</div>
+                        </div>
+                      `;
+                    },
+                  )
+                  .join("")
+              : '<div class="empty">표시할 취재 후보가 없습니다.</div>'
+          }
+          <div class="reporter-card">
+            <strong>방송 후보 제안</strong>
+            ${
+              readyQueue.length
+                ? readyQueue
+                    .slice(0, 3)
+                    .map(
+                      (item) => `
+                        <div class="reporter-meta" data-id="${item.id}">
+                          <span class="reporter-pill ${item.decision === "즉시 취재" ? "hot" : ""}">${escapeHtml(item.decision)}</span>
+                          <span>${escapeHtml(reporterDeskTitle(item))}</span>
+                        </div>
+                      `,
+                    )
+                    .join("")
+                : '<div class="summary">제안할 후보가 없습니다.</div>'
+            }
+          </div>
+          <div class="reporter-card">
+            <strong>추천 알림 조건</strong>
+            ${rules
+              .slice(0, 4)
+              .map(
+                (rule) => `
+                  <button class="reporter-rule" data-reporter-query="${escapeHtml(rule.query)}">
+                    <strong>${escapeHtml(rule.name)}</strong>
+                    <span>${escapeHtml(rule.query)} · 기준 ${Number(rule.threshold || 0)}</span>
+                  </button>
+                `,
+              )
+              .join("")}
+          </div>
+          <div class="reporter-card">
+            <strong>빠른 출처</strong>
+            ${health
+              .slice(0, 3)
+              .map(
+                (source) => `
+                  <div class="reporter-meta">
+                    <span>${escapeHtml(source.source_name)}</span>
+                    <span>${source.success_rate}%</span>
+                    <span>신규 ${source.new_articles}</span>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+        renderFalseRisk(risks);
+      }
+
+      async function loadDetailQueue() {
+        const queueMode = detailQueuePriorityOnly ? "true" : "false";
+        const [summary, items] = await Promise.all([
+          fetchJson("/details/summary"),
+          fetchJson(`/details/queue?limit=6&priority_only=${queueMode}`),
+        ]);
+        const topSources = summary.top_sources || [];
+        detailQueueEl.innerHTML = `
+          <div class="reporter-grid">
+            <div class="stat ${summary.priority_count ? "warning" : ""}"><span>우선</span><strong>${summary.priority_count || 0}</strong></div>
+            <div class="stat ${summary.backlog_count ? "warning" : ""}"><span>전체</span><strong>${summary.backlog_count || 0}</strong></div>
+            <div class="stat ${summary.missing_author_count ? "warning" : ""}"><span>기자명</span><strong>${summary.missing_author_count || 0}</strong></div>
+            <div class="stat ${summary.missing_body_count ? "warning" : ""}"><span>본문</span><strong>${summary.missing_body_count || 0}</strong></div>
+          </div>
+          <div class="detail-actions">
+            <button data-detail-action="batch-priority">${detailQueuePriorityOnly ? "우선 5건 보강" : "전체 10건 보강"}</button>
+            <button data-detail-action="toggle-backlog">${detailQueuePriorityOnly ? "전체 대기 보기" : "우선만 보기"}</button>
+          </div>
+          ${
+            topSources.length
+              ? `<div class="detail-source-list">${topSources
+                  .slice(0, 4)
+                  .map(
+                    (source) => `
+                      <div class="detail-source-item">
+                        <strong>${escapeHtml(source.source_name || "")}</strong>
+                        <span>대기 ${source.total_count || 0} · 기자명 ${source.missing_author_count || 0} · 본문 ${source.missing_body_count || 0}</span>
+                        <span>${escapeHtml(source.recommendation || "")}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")}</div>`
+              : ""
+          }
+          ${
+            items.length
+              ? items
+                  .map((item) => {
+                    const fields = item.detail_missing_fields || [];
+                    return `
+                      <div class="reporter-card" data-id="${item.id}">
+                        <div class="reporter-meta">
+                          <span class="reporter-pill ${Number(item.enrichment_priority || 0) >= 6 ? "hot" : ""}">${escapeHtml(fields.join("+") || "보강")}</span>
+                          <span>${escapeHtml(item.source_name || "")}</span>
+                          <span>score ${Number(item.importance_score || 0).toFixed(1)}</span>
+                        </div>
+                        <strong class="reporter-title">${escapeHtml(compactText(item.title || "", 90))}</strong>
+                        <div class="summary">${escapeHtml(item.enrichment_reason || "상세 보강 필요")}</div>
+                        <div class="detail-actions">
+                          <button data-detail-action="enrich-one" data-id="${item.id}">이 기사 보강</button>
+                          <button data-detail-action="open" data-id="${item.id}">상세 보기</button>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")
+              : '<div class="empty">본문·기자명 보강 대기 기사가 없습니다.</div>'
+          }
+        `;
+      }
+
+      function renderFalseRisk(risks) {
+        falseRiskEl.innerHTML = risks.length
+          ? risks
+              .map(
+                (item) => `
+                  <div class="command-item warning" data-cluster-id="${escapeHtml(item.duplicate_group_id)}">
+                    <strong>${escapeHtml(item.conflict_summary)}</strong>
+                    <span>${escapeHtml(item.title)}</span>
+                    <span>출처 ${item.source_count} · 충돌 ${item.conflict_count}</span>
+                  </div>
+                `,
+              )
+              .join("")
+          : '<div class="empty">현재 충돌 신호가 있는 이슈 묶음이 없습니다.</div>';
+      }
+
+      async function loadCommandCenter() {
+        const center = await fetchJson("/intelligence/command-center");
+        const sla = center.sla || {};
+        const blindSpots = center.blind_spots || [];
+        const playbooks = center.playbooks || [];
+        const recommendations = center.source_recommendations || [];
+        const anomalies = center.anomaly_signals || [];
+        commandCenterEl.innerHTML = `
+          <div class="command-score">
+            <strong>${Number(center.operational_score || 0).toFixed(0)}</strong>
+            <span>운영 등급 ${escapeHtml(center.grade || "-")} · 신선도 ${Number(sla.freshness_score || 0).toFixed(0)} · 성공 ${Number(sla.success_score || 0).toFixed(0)}</span>
+          </div>
+          <div class="reporter-grid">
+            <div class="stat"><span>커버리지</span><strong>${Number(sla.coverage_score || 0).toFixed(0)}</strong></div>
+            <div class="stat"><span>검증 여력</span><strong>${Number(sla.verification_score || 0).toFixed(0)}</strong></div>
+          </div>
+          ${
+            anomalies.length
+              ? `<div class="command-item warning"><strong>급증 신호</strong>${anomalies
+                  .slice(0, 3)
+                  .map((item) => `<span>${escapeHtml(item.title)} · ${item.last_hour}건/h · ${item.ratio}x</span>`)
+                  .join("")}</div>`
+              : '<div class="command-item"><strong>급증 신호</strong><span>현재 큰 이상 급증은 없습니다.</span></div>'
+          }
+          <div class="command-item ${blindSpots.length ? "danger" : ""}">
+            <strong>사각지대</strong>
+            ${
+              blindSpots.length
+                ? blindSpots.slice(0, 4).map((spot) => `<span>${escapeHtml(spot.title)} · ${escapeHtml(spot.action)}</span>`).join("")
+                : "<span>주요 감시망 공백이 없습니다.</span>"
+            }
+          </div>
+          <div class="command-item">
+            <strong>감시 플레이북</strong>
+            ${playbooks
+              .slice(0, 3)
+              .map(
+                (book) => `
+                  <button class="reporter-rule" data-reporter-query="${escapeHtml(book.query)}">
+                    <strong>${escapeHtml(book.name)}</strong>
+                    <span>${escapeHtml(book.trigger)} · ${escapeHtml(book.action)}</span>
+                  </button>
+                `,
+              )
+              .join("")}
+          </div>
+          <div class="command-item">
+            <strong>출처 개선 추천</strong>
+            ${
+              recommendations.length
+                ? recommendations.slice(0, 3).map((item) => `<span>${escapeHtml(item.source_name)} · ${escapeHtml(item.reason)}</span>`).join("")
+                : "<span>즉시 손볼 출처 추천이 없습니다.</span>"
+            }
+          </div>
+        `;
+      }
+
       async function loadSchedulerStatus() {
         const status = await fetchJson("/scheduler/status");
         renderSchedulerStatus(status);
@@ -2236,7 +3447,9 @@
 
       function renderSchedulerStatus(status) {
         const last = status.last_run;
-        const level = status.running_count ? "warning" : status.failed_24h ? "danger" : "";
+        const stalled = Number(status.stalled_count || 0);
+        const running = Number(status.running_count || 0);
+        const level = stalled ? "danger" : running ? "warning" : status.failed_24h ? "warning" : "";
         const progress = status.progress || {};
         const total = Number(progress.total || 0);
         const index = Number(progress.index || 0);
@@ -2246,12 +3459,13 @@
             ? `수집 중 ${index}/${total} · ${progress.current_source || "출처 확인 중"}`
             : "수집 대기";
         schedulerStatusEl.innerHTML = `
-          <div class="stat ${level}"><span>현재 실행</span><strong>${status.running_count ? `${status.running_count}건` : "대기"}</strong></div>
+          <div class="stat ${level}"><span>현재 실행</span><strong>${running ? `${running}건` : "대기"}</strong></div>
           <div class="crawl-progress">
             <strong>${escapeHtml(progressText)}</strong>
             <div class="progress-track"><div class="progress-bar" style="width: ${percent}%"></div></div>
           </div>
-          <div class="stat"><span>최근 상태</span><strong>${escapeHtml(last?.status || "-")}</strong></div>
+          <div class="stat ${stalled ? "danger" : ""}"><span>멈춤 의심</span><strong>${stalled}건</strong></div>
+          <div class="stat"><span>최근 상태</span><strong>${escapeHtml(last?.status_label || last?.status || "-")}</strong></div>
           <div class="stat"><span>최근 출처</span><strong>${escapeHtml(last?.source_name || "-")}</strong></div>
           <div class="stat"><span>24시간 실패</span><strong>${status.failed_24h}</strong></div>
         `;
@@ -2289,20 +3503,37 @@
         `;
       }
 
+      async function loadNotificationStatus() {
+        const status = await fetchJson("/notifications/status");
+        const telegram = status.telegram || {};
+        notificationStatusEl.innerHTML = telegram.configured
+          ? `텔레그램 연결 준비됨 · 대상 ${escapeHtml(telegram.chat_id || "-")}${telegram.message_preview ? " · 링크 미리보기 켜짐" : " · 링크 미리보기 꺼짐"}`
+          : "텔레그램 미설정 · config/notifications.json 또는 환경변수에 BOT_TOKEN, CHAT_ID를 넣으세요.";
+        document.querySelector("#telegramTest").disabled = !telegram.configured;
+      }
+
       async function loadCoverageOverview() {
         const overview = await fetchJson("/coverage/overview");
         const level = overview.danger_count ? "danger" : overview.warning_count ? "warning" : "";
         const risks = overview.risks || [];
+        const globalIdle = Boolean(overview.global_collection_idle);
+        const lastChecked = formatArticleTime(overview.last_checked_at) || "-";
+        const connectedCount = overview.connected_count ?? overview.recent_success_count ?? overview.healthy_count ?? 0;
+        const connectionText = overview.connection_ok
+          ? `연결 점검 정상 · 최근 성공 ${connectedCount}/${overview.enabled_source_count || 0}곳 · 마지막 ${lastChecked}`
+          : `연결 점검 필요 · 최근 성공 ${connectedCount}/${overview.enabled_source_count || 0}곳 · 마지막 ${lastChecked}`;
         coverageSnapshotEl.innerHTML = `
           <div class="coverage-grid">
             <span class="coverage-card"><strong>${overview.enabled_source_count}</strong>활성 출처</span>
-            <span class="coverage-card ${level}"><strong>${overview.danger_count}</strong>위험</span>
-            <span class="coverage-card ${overview.warning_count ? "warning" : ""}"><strong>${overview.warning_count}</strong>주의</span>
-            <span class="coverage-card ${overview.empty_fetch_count ? "warning" : ""}"><strong>${overview.empty_fetch_count}</strong>빈 응답</span>
+            <span class="coverage-card ${overview.connection_ok ? "success" : "warning"}"><strong>${connectedCount}</strong>정상 연결</span>
+            <span class="coverage-card ${overview.failed_count ? "danger" : ""}"><strong>${overview.failed_count}</strong>실패</span>
+            <span class="coverage-card ${overview.stale_count ? "warning" : ""}"><strong>${overview.stale_count}</strong>지연</span>
           </div>
           <div class="summary">
-            ${overview.ok ? "현재 치명 위험은 없습니다." : "수집 실패·지연·빈 응답 출처를 먼저 확인해야 합니다."}
-            ${overview.stale_count ? ` 지연 ${overview.stale_count}곳.` : ""}
+            ${globalIdle ? `전체 수집 공백 ${formatDurationShort(overview.global_idle_seconds)}. 개별 출처 장애가 아니라 자동 수집 실행 상태를 먼저 확인하세요.` : overview.ok ? connectionText : `실패·멈춤·지연을 우선순위대로 확인합니다. ${connectionText}`}
+            ${overview.network_failed_count ? ` 네트워크성 실패 ${overview.network_failed_count}곳.` : ""}
+            ${overview.empty_fetch_count ? ` 빈 응답 ${overview.empty_fetch_count}곳.` : ""}
+            ${overview.running_count ? ` 현재 수집 중 ${overview.running_count}곳.` : ""}
           </div>
           ${
             risks.length
@@ -2323,24 +3554,46 @@
       }
 
       async function loadSourceQuality() {
-        const quality = await fetchJson("/sources/quality");
+        const [quality, diagnostics] = await Promise.all([
+          fetchJson("/sources/quality"),
+          fetchJson("/sources/failure-diagnostics"),
+        ]);
+        const globalIdle = quality.find((source) => source.enabled && source.global_collection_idle);
         const warnings = quality.filter(
-          (source) => source.enabled && ["danger", "warning"].includes(source.risk_level),
+          (source) => source.enabled && !source.global_collection_idle && ["danger", "warning"].includes(source.risk_level),
         );
-        sourceWarningsEl.innerHTML = warnings.length
+        const warningHtml = warnings.length
           ? warnings
               .slice(0, 6)
               .map(
-                (source) => `
-                  <div class="stat ${source.risk_level === "danger" ? "danger" : "warning"}">
-                    <span>${escapeHtml(source.name)}</span>
-                    <strong>${escapeHtml(source.zero_new_label || "점검")}</strong>
-                  </div>
-                  <div class="summary">${escapeHtml(sourceWarningText(source))}</div>
-                `,
+                (source) => {
+                  const meta = sourceWarningMeta(source);
+                  return `
+                    <div class="source-warning-card ${source.risk_level === "danger" ? "danger" : "warning"}">
+                      <div class="source-warning-head">
+                        <strong>${escapeHtml(source.name)}</strong>
+                        <span class="source-warning-label">${escapeHtml(source.health_priority_label || "관찰")}</span>
+                      </div>
+                      <div class="source-warning-meta">
+                        <span class="warning-chip ${source.risk_level === "danger" ? "danger" : "warning"}">${escapeHtml(source.zero_new_label || "점검")}</span>
+                        ${meta.map((item) => `<span class="warning-chip">${escapeHtml(item)}</span>`).join("")}
+                      </div>
+                      <div class="summary">${escapeHtml(sourceWarningText(source))}</div>
+                    </div>
+                  `;
+                },
               )
               .join("")
-          : '<div class="empty">점검이 필요한 출처가 없습니다.</div>';
+          : globalIdle
+            ? `<div class="source-warning-card warning">
+                <div class="source-warning-head">
+                  <strong>전체 수집 공백</strong>
+                  <span class="source-warning-label">자동 수집 확인</span>
+                </div>
+                <div class="summary">대부분의 출처가 같은 시점 이후 멈춰 있습니다. 개별 언론사 장애보다 실시간 조회나 자동 수집기 실행 여부를 먼저 확인하세요.</div>
+              </div>`
+            : "";
+        sourceWarningsEl.innerHTML = `${failureDiagnosticsTemplate(diagnostics)}${warningHtml || ""}`;
         sourceQualityEl.innerHTML = quality
           .slice(0, 12)
           .map((source) => {
@@ -2348,9 +3601,7 @@
             const fetched = Number.isFinite(Number(source.last_fetched_article_count))
               ? Number(source.last_fetched_article_count)
               : 0;
-            const lag = source.seconds_since_last_run
-              ? `${Math.round(Number(source.seconds_since_last_run) / 60)}분 전`
-              : "기록 없음";
+            const lag = formatDurationShort(source.seconds_since_last_run);
             const rowClass =
               source.risk_level === "danger"
                 ? "quality-row failed"
@@ -2369,7 +3620,63 @@
           .join("");
       }
 
+      function failureDiagnosticsTemplate(diagnostics) {
+        const causes = diagnostics.cause_counts || [];
+        const actions = diagnostics.action_items || [];
+        const failedCount = Number(diagnostics.failed_run_count || 0);
+        const currentRisk = Number(diagnostics.current_risk_count || 0);
+        const level = currentRisk ? "warning" : failedCount ? "diagnostic" : "diagnostic";
+        const causeHtml = causes.length
+          ? causes
+              .slice(0, 4)
+              .map(
+                (cause) =>
+                  `<span class="warning-chip ${cause.severity === "danger" ? "danger" : "warning"}">${escapeHtml(cause.label)} ${cause.count}</span>`,
+              )
+              .join("")
+          : currentRisk
+            ? `<span class="warning-chip">연결 실패 없음</span><span class="warning-chip warning">지연 관찰 ${currentRisk}곳</span>`
+            : '<span class="warning-chip">최근 실패 없음</span>';
+        const actionHtml = actions.length
+          ? actions
+              .slice(0, 3)
+              .map((item) => `<span>${escapeHtml(item.source_name || "")} · ${escapeHtml(item.action || "")}</span>`)
+              .join("<br />")
+          : currentRisk
+            ? "<span>실패 원인은 없고, 수집 주기 지연 또는 중복 유입 여부만 관찰 중입니다.</span>"
+            : "<span>현재 출처별 즉시 조치 대상은 없습니다.</span>";
+        const diagnosticSummary = failedCount
+          ? `실패 ${failedCount}건 · 현재 경고 ${currentRisk}곳 · 재시도 가능 ${diagnostics.retryable_count || 0}건`
+          : `실패 없음 · 지연 관찰 ${currentRisk}곳 · 연결 정상`;
+        return `
+          <div class="source-warning-card ${level}">
+            <div class="source-warning-head">
+              <strong>실패·지연 요약</strong>
+              <span class="source-warning-label">최근 ${diagnostics.window_hours || 24}시간</span>
+            </div>
+            <div class="source-warning-meta">${causeHtml}</div>
+            <div class="summary">${diagnosticSummary}</div>
+            <div class="summary">${actionHtml}</div>
+          </div>
+        `;
+      }
+
       function sourceWarningText(source) {
+        if (source.zero_new_status === "stalled") {
+          return `마지막 실행이 ${formatDurationShort(source.seconds_since_last_run)}부터 완료되지 않았습니다. 서버 재시작이나 중간 중단으로 실행 기록이 멈췄을 수 있습니다.`;
+        }
+        if (source.zero_new_status === "repeated_failed") {
+          const count = Number(source.failure_streak || 2);
+          const cause = source.failure_cause_label ? `${source.failure_cause_label}. ` : "";
+          const hint = source.failure_hint || "URL, 리다이렉트, 접속 차단 여부를 확인하세요.";
+          const action = source.failure_action ? ` ${source.failure_action}` : "";
+          return `최근 ${count}회 연속 수집이 실패했습니다. ${cause}${hint}${action}`;
+        }
+        if (source.zero_new_status === "transient_failed") {
+          const cause = source.failure_cause_label ? `${source.failure_cause_label}. ` : "";
+          const hint = source.failure_hint || "일시적인 네트워크 오류일 수 있습니다.";
+          return `마지막 1회 수집만 실패했습니다. ${cause}${hint}`;
+        }
         if (source.last_status === "failed") {
           return source.last_error_message || "최근 수집이 실패했습니다. URL, 리다이렉트, 접속 차단 여부를 확인하세요.";
         }
@@ -2378,6 +3685,9 @@
         }
         if (source.zero_new_status === "stale" || source.zero_new_status === "stale_watch") {
           return "예정된 주기보다 수집이 늦어졌습니다. 자동 수집기 실행 여부와 네트워크 상태를 확인하세요.";
+        }
+        if (source.zero_new_status === "global_idle") {
+          return "전체 수집이 쉬고 있는 상태입니다. 개별 출처 선택자보다 자동 수집 실행 상태를 먼저 확인하세요.";
         }
         if (source.zero_new_status === "selector_check") {
           return "기사 누적이 없고 0건 수집이 반복됐습니다. 사이트 구조나 선택자 변경 가능성이 큽니다.";
@@ -2394,6 +3704,15 @@
         return "현재 정상 범위입니다.";
       }
 
+      function sourceWarningMeta(source) {
+        const items = [];
+        if (source.failure_cause_label) items.push(source.failure_cause_label);
+        if (Number(source.failure_streak || 0) > 0) items.push(`연속 ${source.failure_streak}회`);
+        if (source.success_rate !== null && source.success_rate !== undefined) items.push(`성공률 ${source.success_rate}%`);
+        items.push(formatDurationShort(source.seconds_since_last_run));
+        return items.slice(0, 4);
+      }
+
       async function loadRuns() {
         const q = document.querySelector("#runSearch").value.trim();
         const status = document.querySelector("#runStatus").value;
@@ -2403,25 +3722,38 @@
         const runs = await fetchJson(`/crawl-runs/search?${params.toString()}`);
         runsEl.innerHTML = runs
           .map(
-            (run) => `
-              <div class="run ${run.status === "failed" ? "failed" : ""}">
-                <strong>${escapeHtml(run.source_name)}</strong><br />
-                ${escapeHtml(run.status)} · 확인 ${Number(run.fetched_article_count || 0)}건 · 신규 ${run.new_article_count}건 · ${escapeHtml(run.started_at)}
-                ${run.error_message ? `<br /><span>${escapeHtml(run.error_message)}</span>` : ""}
-              </div>
-            `,
+            (run) => {
+              const runClass =
+                run.effective_status === "failed"
+                  ? "failed"
+                  : run.effective_status === "stalled"
+                    ? "stalled"
+                    : "";
+              const cause = run.failure_cause_label ? ` · ${run.failure_cause_label}` : "";
+              const age = run.seconds_since_started ? ` · ${formatDurationShort(run.seconds_since_started)}` : "";
+              return `
+                <div class="run ${runClass}">
+                  <strong>${escapeHtml(run.source_name)}</strong><br />
+                  ${escapeHtml(run.status_label || run.status)}${escapeHtml(cause)} · 확인 ${Number(run.fetched_article_count || 0)}건 · 신규 ${run.new_article_count}건${age}<br />
+                  <span>${escapeHtml(run.status_hint || "")}</span>
+                  ${run.error_message ? `<br /><span>원문 오류: ${escapeHtml(run.error_message)}</span>` : ""}
+                </div>
+              `;
+            },
           )
           .join("");
       }
 
       async function loadSources() {
         const sources = await fetchJson("/sources");
+        const selected = selectedSourceNames();
         sourceEl.innerHTML =
-          '<option value="">전체 출처</option>' +
           sources
             .filter((source) => source.enabled)
             .map((source) => `<option value="${escapeHtml(source.name)}">${escapeHtml(source.name)}</option>`)
             .join("");
+        const enabledNames = new Set(sources.filter((source) => source.enabled).map((source) => source.name));
+        setSelectedSources(selected.filter((name) => enabledNames.has(name)));
         const pinned = [
           "KBS",
           "SBS",
@@ -2431,6 +3763,15 @@
           "TV조선",
           "채널A",
           "MBN",
+          "KNN",
+          "KBC",
+          "TBC",
+          "TJB",
+          "JTV",
+          "G1",
+          "UBC",
+          "CJB",
+          "JIBS",
           "연합뉴스TV",
           "조선",
           "동아",
@@ -2457,6 +3798,7 @@
               return source ? `<button data-source-name="${escapeHtml(source.name)}">${escapeHtml(label)}</button>` : "";
             })
             .join("");
+        syncSourceButtons();
         return sources;
       }
 
@@ -2476,10 +3818,22 @@
 
       async function showClusterDetail(clusterId) {
         const items = await fetchJson(`/clusters/${encodeURIComponent(clusterId)}/articles?limit=30`);
+        const reporterCompare = await fetchJson(`/reporter/clusters/${encodeURIComponent(clusterId)}/compare`);
+        const conflictHtml = reporterCompare.conflict_count
+          ? `<div class="conflict-box">
+              <strong>오보 위험 경고</strong>
+              <span>${escapeHtml(reporterCompare.conflict_summary)}</span>
+              ${(reporterCompare.conflicts || [])
+                .slice(0, 3)
+                .map((conflict) => `<span>${escapeHtml(conflict.field)}: ${escapeHtml(Object.entries(conflict.values || {}).map(([source, values]) => `${source} ${values.join("/")}`).join(" · "))}</span>`)
+                .join("")}
+            </div>`
+          : '<div class="verification-score"><strong>충돌 신호 없음</strong><span>숫자·시각·날짜 기준으로 큰 차이가 보이지 않습니다.</span></div>';
         articlesEl.innerHTML = items.length
           ? `
             <article>
               <h3>이슈 묶음 비교</h3>
+              ${conflictHtml}
               <table class="compare-table">
                 <thead><tr><th>출처</th><th>지역</th><th>제목</th><th>시간</th><th>품질</th></tr></thead>
                 <tbody>
@@ -2533,15 +3887,20 @@
           button.textContent = `${label === "기타" ? "전체" : label} ${count}`;
         });
         statsEl.innerHTML = `
-          <div class="stat"><span>전체 기사</span><strong>${stats.article_count}</strong></div>
-          <div class="stat"><span>활성 출처</span><strong>${stats.source_count}</strong></div>
-          <div class="stat"><span>새 알림</span><strong>${stats.alert_count}</strong></div>
-          <div class="stat"><span>방송 후보</span><strong>${stats.ready_count}</strong></div>
-          <div class="stat"><span>상세 수집</span><strong>${stats.with_body_count}</strong></div>
-          <div class="stat"><span>최근 수집</span><strong>${escapeHtml(stats.last_collected_at || "-")}</strong></div>
+          <button type="button" class="stat" data-stat-filter="all" title="전체 기사 목록을 조회합니다."><span>전체 기사</span><strong>${stats.article_count}</strong></button>
+          <button type="button" class="stat" data-stat-filter="active-sources" title="활성 출처 관리 화면을 엽니다."><span>활성 출처</span><strong>${stats.source_count}</strong></button>
+          <button type="button" class="stat ${stats.alert_count ? "warning" : ""} ${alertOnly ? "active" : ""}" data-stat-filter="alerts" title="아직 확인하지 않은 알림 기사만 조회합니다."><span>새 알림</span><strong>${stats.alert_count}</strong></button>
+          <button type="button" class="stat ${stats.ready_count ? "warning" : ""} ${document.querySelector("#status").value === "ready" ? "active" : ""}" data-stat-filter="ready" title="방송 후보 기사만 조회합니다."><span>방송 후보</span><strong>${stats.ready_count}</strong></button>
+          <button type="button" class="stat ${stats.needs_work_count ? "warning" : ""} ${riskOnly ? "active" : ""}" data-stat-filter="needs-work" title="품질 낮음, 검증 필요, 긴급·방송 후보 보강, 고중요 단일출처처럼 지금 먼저 조치할 기사입니다. 클릭하면 해당 기사 목록을 조회합니다."><span>보강필요</span><strong>${stats.needs_work_count || 0}</strong></button>
+          <button type="button" class="stat ${stats.needs_review_count ? "warning" : ""} ${reviewOnly ? "active" : ""}" data-stat-filter="needs-review" title="검증 필요 또는 사용주의 상태의 기사입니다. 클릭하면 해당 기사 목록을 조회합니다."><span>확인필요</span><strong>${stats.needs_review_count || 0}</strong></button>
+          <button type="button" class="stat ${bodyOnly ? "active" : ""}" data-stat-filter="has-body" title="원문 본문이 수집된 기사만 조회합니다."><span>상세 수집</span><strong>${stats.with_body_count}</strong></button>
+          <button type="button" class="stat ${stats.detail_queue_count ? "warning" : ""} ${detailOnly ? "active" : ""}" data-stat-filter="needs-detail" title="긴급·방송후보·확인필요 기사 중 본문 또는 기자명 보강이 필요한 기사만 조회합니다."><span>우선 보강</span><strong>${stats.detail_queue_count || 0}</strong></button>
+          <button type="button" class="stat ${stats.missing_author_count ? "warning" : ""} ${missingAuthorOnly ? "active" : ""}" data-stat-filter="missing-author" title="기자명 또는 작성자 정보가 비어 있는 뉴스 기사입니다. 클릭하면 해당 기사 목록을 조회합니다."><span>기자명 없음</span><strong>${stats.missing_author_count || 0}</strong></button>
+          <button type="button" class="stat" data-stat-filter="search-index" title="검색 가능한 전체 기사 목록으로 이동합니다."><span>검색 인덱스</span><strong>${stats.fts_enabled ? "FTS" : "LIKE"}</strong></button>
+          <button type="button" class="stat" data-stat-filter="latest" title="최근 수집순으로 기사 목록을 조회합니다."><span>최근 수집</span><strong>${escapeHtml(stats.last_collected_at || "-")}</strong></button>
           ${stats.categories
             .slice(0, 4)
-            .map((row) => `<div class="stat"><span>${escapeHtml(categoryLabel(row.source_category))}</span><strong>${row.count}</strong></div>`)
+            .map((row) => `<button type="button" class="stat ${activeCategory === row.source_category ? "active" : ""}" data-stat-category="${escapeHtml(row.source_category || "")}" title="${escapeHtml(categoryLabel(row.source_category))} 분야 기사만 조회합니다."><span>${escapeHtml(categoryLabel(row.source_category))}</span><strong>${row.count}</strong></button>`)
             .join("")}
         `;
         renderRegionStats(stats.regions || []);
@@ -2567,12 +3926,83 @@
 
       function runSearch() {
         const q = document.querySelector("#q").value.trim();
-        rememberSearch(q);
-        if (!q) {
-          document.querySelector("#mode").value = "latest";
-          document.querySelector("#sort").value = "latest";
+        if (!q && !hasArticleFilters()) {
+          liveStatusEl.textContent = "전체기사 조회";
+          loadArticles({ resetPage: true, allArticles: true }).catch((error) => showToast(error.message));
+          return;
         }
-        loadArticles({ refreshFirst: true, resetPage: true }).catch((error) => showToast(error.message));
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+      }
+
+      function applyCollectionStatusFilter(filter) {
+        resetFilters();
+        document.querySelector("#mode").value = "latest";
+        document.querySelector("#sort").value = "latest";
+        if (filter === "all") {
+          showToast("전체 기사 목록을 조회합니다.");
+        }
+        if (filter === "active-sources") {
+          document.querySelector("#mode").value = "admin";
+          showToast("활성 출처 관리 화면을 엽니다.");
+          loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+          loadStats().catch((error) => showToast(error.message));
+          return;
+        }
+        if (filter === "alerts") {
+          alertOnly = true;
+          showToast("새 알림 기사만 조회합니다.");
+        }
+        if (filter === "ready") {
+          document.querySelector("#status").value = "ready";
+          showToast("방송 후보 기사만 조회합니다.");
+        }
+        if (filter === "needs-work") {
+          riskOnly = true;
+          localStorage.setItem(riskOnlyKey, "1");
+          riskOnlyEl.classList.add("active");
+          showToast("보강필요 기사만 조회합니다.");
+        }
+        if (filter === "needs-review") {
+          reviewOnly = true;
+          showToast("확인필요 기사만 조회합니다.");
+        }
+        if (filter === "missing-author") {
+          missingAuthorOnly = true;
+          showToast("기자명 없는 기사만 조회합니다.");
+        }
+        if (filter === "has-body") {
+          bodyOnly = true;
+          showToast("상세 수집된 기사만 조회합니다.");
+        }
+        if (filter === "needs-detail") {
+          detailOnly = true;
+          showToast("우선 보강 대상 기사만 조회합니다.");
+        }
+        if (filter === "search-index") {
+          showToast("검색 가능한 전체 기사 목록을 조회합니다.");
+        }
+        if (filter === "latest") {
+          showToast("최근 수집순으로 기사 목록을 조회합니다.");
+        }
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+        loadStats().catch((error) => showToast(error.message));
+      }
+
+      function applyCollectionCategoryFilter(category) {
+        resetFilters();
+        document.querySelector("#mode").value = "latest";
+        activeCategory = category || "";
+        document.querySelectorAll("#quickbar button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.category === activeCategory);
+        });
+        showToast(`${categoryLabel(activeCategory)} 기사만 조회합니다.`);
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+        loadStats().catch((error) => showToast(error.message));
+      }
+
+      async function collectNow() {
+        await loadArticles({ refreshFirst: true, resetPage: true });
+        await loadReporterDesk();
       }
 
       function setLiveSearchState(active) {
@@ -2609,6 +4039,9 @@
       document.querySelector("#search").addEventListener("click", () => {
         runSearch();
       });
+      collectButtonEl.addEventListener("click", () => {
+        collectNow().catch((error) => showToast(error.message));
+      });
       liveSearchButtonEl.addEventListener("click", toggleLiveSearch);
       missionModeEl.addEventListener("click", toggleMissionMode);
       unreadOnlyEl.addEventListener("click", () => {
@@ -2617,24 +4050,37 @@
         unreadOnlyEl.classList.toggle("active", unreadOnly);
         loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
+      riskOnlyEl.addEventListener("click", () => {
+        riskOnly = !riskOnly;
+        if (riskOnly) {
+          reviewOnly = false;
+          missingAuthorOnly = false;
+          alertOnly = false;
+          bodyOnly = false;
+          detailOnly = false;
+        }
+        localStorage.setItem(riskOnlyKey, riskOnly ? "1" : "0");
+        riskOnlyEl.classList.toggle("active", riskOnly);
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+      });
       document.querySelector("#resetFilters").addEventListener("click", () => {
         resetFilters();
         refreshDashboard().catch((error) => showToast(error.message));
       });
+      document.querySelector("#allArticles").addEventListener("click", () => {
+        loadArticles({ resetPage: true, allArticles: true }).catch((error) => showToast(error.message));
+      });
       document.querySelector("#scrollTop").addEventListener("click", () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-      recentSearchesEl.addEventListener("click", (event) => {
-        const query = event.target.dataset?.recentQuery;
-        if (!query) return;
-        document.querySelector("#q").value = query;
-        document.querySelector("#mode").value = "latest";
-        loadArticles({ refreshFirst: true, resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#q").addEventListener("keydown", (event) => {
         if (event.key === "Enter") runSearch();
       });
       document.querySelector("#period").addEventListener("change", () => {
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+      });
+      sourceEl.addEventListener("change", () => {
+        syncSourceButtons();
         loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#dateFrom").addEventListener("change", () => {
@@ -2662,8 +4108,7 @@
         if (!query) return;
         document.querySelector("#q").value = query;
         document.querySelector("#mode").value = "latest";
-        rememberSearch(query);
-        loadArticles({ refreshFirst: true, resetPage: true }).catch((error) => showToast(error.message));
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       document.querySelector("#quickbar").addEventListener("click", (event) => {
         if (!event.target.dataset) return;
@@ -2676,9 +4121,18 @@
       });
       document.querySelector("#sourcebar").addEventListener("click", (event) => {
         if (event.target.dataset.sourceName === undefined) return;
-        sourceEl.value = event.target.dataset.sourceName;
-        document.querySelectorAll("#sourcebar button").forEach((button) => button.classList.remove("active"));
-        event.target.classList.add("active");
+        const sourceName = event.target.dataset.sourceName;
+        if (!sourceName) {
+          setSelectedSources([]);
+        } else {
+          const selected = new Set(selectedSourceNames());
+          if (selected.has(sourceName)) {
+            selected.delete(sourceName);
+          } else {
+            selected.add(sourceName);
+          }
+          setSelectedSources([...selected]);
+        }
         loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       regionStatsEl.addEventListener("click", (event) => {
@@ -2687,27 +4141,44 @@
         regionEl.value = regionEl.value === row.dataset.regionGroup ? "" : row.dataset.regionGroup;
         refreshDashboard().catch((error) => showToast(error.message));
       });
+      statsEl.addEventListener("click", (event) => {
+        const card = event.target.closest("[data-stat-filter]");
+        if (card) {
+          applyCollectionStatusFilter(card.dataset.statFilter);
+          return;
+        }
+        const categoryCard = event.target.closest("[data-stat-category]");
+        if (categoryCard) applyCollectionCategoryFilter(categoryCard.dataset.statCategory);
+      });
+      statsEl.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        const card = event.target.closest("[data-stat-filter]");
+        const categoryCard = event.target.closest("[data-stat-category]");
+        if (!card && !categoryCard) return;
+        event.preventDefault();
+        if (card) applyCollectionStatusFilter(card.dataset.statFilter);
+        if (categoryCard) applyCollectionCategoryFilter(categoryCard.dataset.statCategory);
+      });
       document.querySelector("#exportCsv").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "1000" });
-        if (activeCategory) params.set("source_category", activeCategory);
-        addDateFilters(params);
-        addRegionFilter(params);
+        addCurrentArticleFilters(params);
         window.open(`/exports/articles.csv?${params.toString()}`, "_blank");
       });
       document.querySelector("#exportCue").addEventListener("click", () => {
         const params = new URLSearchParams({ limit: "100", newsroom_status: "ready" });
-        if (activeCategory) params.set("source_category", activeCategory);
-        addDateFilters(params);
-        addRegionFilter(params);
+        if (hasArticleFilters() || document.querySelector("#q").value.trim()) {
+          params.delete("newsroom_status");
+          addCurrentArticleFilters(params);
+        }
         window.open(`/exports/cuesheet.txt?${params.toString()}`, "_blank");
       });
       document.querySelector("#backupDb").addEventListener("click", async () => {
-        const result = await fetchJson("/maintenance/backup", { method: "POST" });
+        const result = await fetchJson("/maintenance/backup", { method: "POST", timeoutMs: 90000 });
         showToast(`백업 완료: ${result.backup_path}`);
         loadStats();
       });
       document.querySelector("#rebuildClusters").addEventListener("click", async () => {
-        await fetchJson("/clusters/rebuild?limit=1000", { method: "POST" });
+        await fetchJson("/clusters/rebuild?limit=1000", { method: "POST", timeoutMs: 120000 });
         showToast("이슈 묶음을 재계산했습니다.");
         await loadClusters();
       });
@@ -2715,6 +4186,14 @@
         const result = await fetchJson("/maintenance/prune-alerts?days=14", { method: "POST" });
         showToast(`오래된 알림 ${result.deleted_alerts}건을 정리했습니다.`);
         await Promise.all([loadAlertEvents(), loadStats()]);
+      });
+      document.querySelector("#repairData").addEventListener("click", async () => {
+        const result = await fetchJson("/admin/repair-data?limit=5000", { method: "POST", timeoutMs: 120000 });
+        const repair = result.repair || {};
+        showToast(
+          `데이터 정리 완료: 제목 ${repair.repaired_titles || 0}건, 텍스트 ${repair.normalized_texts || 0}건, 작성자 ${repair.cleaned_authors || 0}건 정리, 기자명 추론 ${repair.inferred_authors || 0}건`,
+        );
+        await Promise.all([loadArticles(), loadStats(), loadDetailQueue(), loadUrgentRail()]);
       });
       document.querySelector("#ackAllAlerts").addEventListener("click", async () => {
         const result = await fetchJson("/alert-events/ack-all", { method: "POST" });
@@ -2725,7 +4204,14 @@
         const result = await fetchJson("/admin/validate");
         showToast(result.ok ? "설정 정상" : result.errors.join("\\n"));
       });
+      document.querySelector("#telegramTest").addEventListener("click", () => {
+        sendTelegramTest().catch((error) => showToast(error.message));
+      });
       clustersEl.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-cluster-id]");
+        if (item) showClusterDetail(item.dataset.clusterId).catch((error) => showToast(error.message));
+      });
+      falseRiskEl.addEventListener("click", (event) => {
         const item = event.target.closest("[data-cluster-id]");
         if (item) showClusterDetail(item.dataset.clusterId).catch((error) => showToast(error.message));
       });
@@ -2758,6 +4244,10 @@
             copyArticleBrief(id).catch((error) => showToast(error.message));
             return;
           }
+          if (action.dataset.urgentAction === "telegram") {
+            sendArticleTelegram(id).catch((error) => showToast(error.message));
+            return;
+          }
           if (action.dataset.urgentAction === "detail") {
             showDetail(id).catch((error) => showToast(error.message));
             return;
@@ -2765,6 +4255,60 @@
         }
         const item = event.target.closest("[data-id]");
         if (item) showDetail(item.dataset.id).catch((error) => showToast(error.message));
+      });
+      reporterDeskEl.addEventListener("click", (event) => {
+        const rule = event.target.closest("[data-reporter-query]");
+        if (rule) {
+          document.querySelector("#q").value = rule.dataset.reporterQuery.replace(/\s+OR\s+/g, " ");
+          document.querySelector("#mode").value = "latest";
+          loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
+          return;
+        }
+        const item = event.target.closest("[data-id]");
+        if (item) showDetail(item.dataset.id).catch((error) => showToast(error.message));
+      });
+      detailQueueEl.addEventListener("click", async (event) => {
+        const actionEl = event.target.closest("[data-detail-action]");
+        if (actionEl) {
+          const action = actionEl.dataset.detailAction;
+          if (action === "toggle-backlog") {
+            detailQueuePriorityOnly = !detailQueuePriorityOnly;
+            await loadDetailQueue();
+            return;
+          }
+          if (action === "batch-priority") {
+            const params = new URLSearchParams({
+              limit: detailQueuePriorityOnly ? "5" : "10",
+              priority_only: detailQueuePriorityOnly ? "true" : "false",
+            });
+            const result = await fetchJson(`/details/enrich-batch?${params.toString()}`, { method: "POST", timeoutMs: 180000 });
+            showToast(
+              `상세 보강 완료: 보강 ${result.enriched || 0}건, 기자명 ${result.author_added || 0}건, 본문 ${result.body_added || 0}건, 실패 ${result.failed || 0}건`,
+            );
+            await Promise.all([loadDetailQueue(), loadStats(), loadArticles()]);
+            return;
+          }
+          if (action === "enrich-one") {
+            const id = actionEl.dataset.id;
+            await fetchJson(`/articles/${id}/enrich`, { method: "POST", timeoutMs: 90000 });
+            showToast("상세 보강을 실행했습니다.");
+            await Promise.all([loadDetailQueue(), loadStats(), loadArticles()]);
+            return;
+          }
+          if (action === "open") {
+            await showDetail(actionEl.dataset.id);
+            return;
+          }
+        }
+        const item = event.target.closest("[data-id]");
+        if (item) showDetail(item.dataset.id).catch((error) => showToast(error.message));
+      });
+      commandCenterEl.addEventListener("click", (event) => {
+        const rule = event.target.closest("[data-reporter-query]");
+        if (!rule) return;
+        document.querySelector("#q").value = rule.dataset.reporterQuery.replace(/\s+OR\s+/g, " ");
+        document.querySelector("#mode").value = "latest";
+        loadArticles({ resetPage: true }).catch((error) => showToast(error.message));
       });
       articlesEl.addEventListener("click", (event) => {
         const pageButton = event.target.closest(".pagination button[data-page]");
@@ -2847,6 +4391,7 @@
         }
         if (action === "save") saveWorkflow(article);
         if (action === "copy") copyArticleBrief(article.dataset.id).catch((error) => showToast(error.message));
+        if (action === "telegram") sendArticleTelegram(article.dataset.id).catch((error) => showToast(error.message));
         if (action === "assist") buildAssist(article);
         if (action === "enrich") enrichArticle(article);
         if (action === "detail") showDetail(article.dataset.id);
@@ -2857,10 +4402,33 @@
           await copyArticleBrief(event.target.dataset.id);
           return;
         }
+        if (event.target.dataset.action === "panel-telegram") {
+          await sendArticleTelegram(event.target.dataset.id);
+          return;
+        }
         if (event.target.dataset.action === "panel-assist") {
           const id = event.target.dataset.id;
           await fetchJson(`/articles/${id}/ai-assist`, { method: "POST" });
           showToast("AI 검토를 생성했습니다.");
+          await showDetail(id);
+          return;
+        }
+        if (event.target.dataset.action === "save-contact-log") {
+          const id = event.target.dataset.id;
+          const form = detailPanelEl.querySelector(`[data-contact-form="${CSS.escape(String(id))}"]`);
+          const target = form?.querySelector("[data-contact-target]")?.value.trim() || "";
+          const note = form?.querySelector("[data-contact-note]")?.value.trim() || "";
+          const next = form?.querySelector("[data-contact-next]")?.value || null;
+          if (!target || !note) {
+            showToast("확인 대상과 답변 내용을 입력하세요.");
+            return;
+          }
+          await fetchJson(`/articles/${id}/contact-logs`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contact_target: target, response_note: note, next_check_at: next }),
+          });
+          showToast("콜로그를 저장했습니다.");
           await showDetail(id);
           return;
         }
@@ -2879,13 +4447,23 @@
       });
 
       async function refreshDashboard() {
-        await Promise.all([
-          loadStats(),
-          loadSchedulerStatus(),
-          loadCoverageOverview(),
-          loadArticles(),
-        ]);
-        scheduleSecondaryRefresh();
+        if (dashboardRefreshRunning) return;
+        dashboardRefreshRunning = true;
+        try {
+          await Promise.all([
+            loadStats(),
+            loadReporterDesk(),
+            loadDetailQueue(),
+            loadCommandCenter(),
+            loadSchedulerStatus(),
+            loadCoverageOverview(),
+            loadNotificationStatus(),
+            loadArticles(),
+          ]);
+          scheduleSecondaryRefresh();
+        } finally {
+          dashboardRefreshRunning = false;
+        }
       }
 
       function deferWork(task, delay = 0) {
@@ -2900,11 +4478,15 @@
       function scheduleSecondaryRefresh() {
         const tasks = [
           loadUrgentRail,
+          loadReporterDesk,
+          loadDetailQueue,
+          loadCommandCenter,
           loadCoverageOverview,
           loadRuns,
           loadAlertEvents,
           loadClusters,
           loadOperations,
+          loadNotificationStatus,
           loadSourceQuality,
         ];
         tasks.forEach((task, index) => deferWork(task, 120 * index));
@@ -2914,8 +4496,8 @@
         liveStatusEl.textContent = "초기 화면 로딩 중";
         await loadSources();
         if (missionMode) applyMissionDefaults();
-        renderRecentSearches();
-        await Promise.all([loadArticles(), loadStats(), loadSchedulerStatus(), loadCoverageOverview()]);
+        localStorage.removeItem("newsroom-recent-searches");
+        await Promise.all([loadArticles(), loadStats(), loadReporterDesk(), loadDetailQueue(), loadCommandCenter(), loadSchedulerStatus(), loadCoverageOverview(), loadNotificationStatus()]);
         liveStatusEl.textContent = `초기 화면 준비 완료 · ${new Date().toLocaleTimeString("ko-KR")}`;
         scheduleSecondaryRefresh();
       }

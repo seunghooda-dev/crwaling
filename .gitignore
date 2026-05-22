@@ -8,4 +8,5 @@ logs/
 .pytest_cache/
 pytest-cache-files-*/
 .env
+config/notifications.json
 /crawling
